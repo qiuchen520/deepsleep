@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCAFFOLD = ROOT / ".scaffold"
+SCAFFOLD = ROOT / "ci_scaffold"
 ANDROID = ROOT / "android"
 PROJECT_NAME = "deepsleep"
 ORG = "com.deepsleep"

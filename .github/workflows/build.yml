@@ -42,7 +42,7 @@ jobs:
       - name: Analyze (errors only fail)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Unit tests (pure Dart logic: token budgeting, memory engine, prompts)
+      - name: Unit tests (pure Dart logic)
         run: flutter test
 
       - name: Build release APK (split per ABI)

@@ -19,6 +19,7 @@ linux/
 macos/
 windows/
 .scaffold/
+ci_scaffold/
 
 # Local secrets
 *.env
