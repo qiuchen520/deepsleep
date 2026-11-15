@@ -21,7 +21,10 @@ class Ids {
     final normalized = text
         .toLowerCase()
         .replaceAll(RegExp(r'\s+'), '')
-        .replaceAll(RegExp(r'[，。！？、；：,.!?;:（）()\[\]【】"“”\'’]'), '');
+        .replaceAll(
+          RegExp("[，。！？、；：,.!?;:（）()\\[\\]【】\"“”'’]"),
+          '',
+        );
     return sha1.convert(utf8.encode(normalized)).toString().substring(0, 16);
   }
 }

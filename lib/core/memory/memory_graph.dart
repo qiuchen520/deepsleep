@@ -6,6 +6,7 @@
 library;
 
 import '../../data/models/memory_models.dart';
+import 'contracts.dart';
 import '../utils/ids.dart';
 import 'extraction.dart';
 import 'memory_utils.dart';
