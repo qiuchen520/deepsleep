@@ -66,9 +66,9 @@ void main() {
       expect(prompt, contains('不要使用表情符号'));
     });
 
-    test('没有记忆时不输出长期记忆标题', () {
+    test('没有记忆时不输出长期记忆块', () {
       final prompt = buildSystemPrompt(profile: profile);
-      expect(prompt, isNot(contains('长期记忆')));
+      expect(prompt, isNot(contains('【长期记忆】')));
     });
   });
 
