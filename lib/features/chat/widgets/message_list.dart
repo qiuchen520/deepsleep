@@ -46,14 +46,27 @@ class MessageList extends StatelessWidget {
         final isStreaming =
             controller.streaming && message.isStreaming && isLast;
         // 与官方 Web Demo 一致：内容列居中（实列 752），列内助手左对齐、用户右对齐。
+        final highlighted = controller.focusedMessageId == message.id;
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 752),
-            child: _MessageBody(
-              message: message,
-              controller: controller,
-              isLastAssistant: isLastAssistant,
-              isStreaming: isStreaming,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              margin: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: highlighted
+                    ? context.colors.brandSoft.withValues(alpha: 0.7)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: _MessageBody(
+                message: message,
+                controller: controller,
+                isLastAssistant: isLastAssistant,
+                isStreaming: isStreaming,
+              ),
             ),
           ),
         );

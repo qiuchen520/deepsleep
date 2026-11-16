@@ -48,6 +48,7 @@ class _ChatViewState extends State<ChatView> {
 
   int _lastMessageCount = 0;
   String? _lastConversationId;
+  String? _lastFocusId;
   bool _stickToBottom = true;
   bool _atBottom = true;
 
@@ -128,6 +129,32 @@ class _ChatViewState extends State<ChatView> {
     if (forceStick) _stickToBottom = true;
     _lastConversationId = activeId;
     _lastMessageCount = messages.length;
+
+    final focusId = controller.focusedMessageId;
+    if (focusId != null && focusId != _lastFocusId) {
+      _lastFocusId = focusId;
+      final idx = messages.indexWhere((m) => m.id == focusId);
+      if (idx >= 0) {
+        _stickToBottom = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_scrollController.hasClients) return;
+          final position = _scrollController.position;
+          final ratio = messages.isEmpty ? 0.0 : idx / messages.length;
+          final target = (position.maxScrollExtent * ratio)
+              .clamp(0.0, position.maxScrollExtent);
+          _scrollController.animateTo(
+            target,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+          );
+        });
+        Future<void>.delayed(const Duration(milliseconds: 1600), () {
+          if (mounted) controller.clearFocusMessage();
+        });
+      }
+    } else if (focusId == null) {
+      _lastFocusId = null;
+    }
 
     final notice = controller.notice;
     if (notice != null && notice.isNotEmpty) {

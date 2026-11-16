@@ -67,6 +67,7 @@ class ConversationController extends ChangeNotifier {
   List<AttachmentRef> _pendingAttachments = <AttachmentRef>[];
 
   // 结果与提示
+  String? _focusMessageId;
   String? _notice;
   String? _lastError;
   MemoryContext _lastMemory = MemoryContext.empty;
@@ -106,6 +107,9 @@ class ConversationController extends ChangeNotifier {
   bool get deepThinking => _deepThinking;
   bool get searchOn => _searchOn;
   String? get notice => _notice;
+
+  /// 全局搜索跳转时定位到的消息 id（UI 负责滚动/高亮后清除）。
+  String? get focusedMessageId => _focusMessageId;
   String? get lastError => _lastError;
   MemoryContext get lastMemory => _lastMemory;
   List<SearchHit> get lastSearchHits => _lastSearchHits;
@@ -139,6 +143,17 @@ class ConversationController extends ChangeNotifier {
 
   void consumeNotice() {
     _notice = null;
+  }
+
+  void focusMessage(String? messageId) {
+    _focusMessageId = messageId;
+    _notify();
+  }
+
+  void clearFocusMessage() {
+    if (_focusMessageId == null) return;
+    _focusMessageId = null;
+    _notify();
   }
 
   void clearLastError() {

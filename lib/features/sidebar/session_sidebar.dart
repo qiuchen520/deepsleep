@@ -15,6 +15,8 @@ import '../../data/models/profile_models.dart';
 import '../../services/contracts.dart';
 import '../../state/app_services.dart';
 import '../../widgets/soft_menu.dart';
+import '../../widgets/soft_modal.dart';
+import '../search/global_search_page.dart';
 
 /// 会话侧栏。
 ///
@@ -70,7 +72,6 @@ class _SidebarBody extends StatefulWidget {
 }
 
 class _SidebarBodyState extends State<_SidebarBody> {
-  final TextEditingController _searchController = TextEditingController();
   late final Listenable _listenable;
 
   bool _pinnedCollapsed = false;
@@ -90,12 +91,6 @@ class _SidebarBodyState extends State<_SidebarBody> {
       if (!mounted) return;
       widget.services.memories.refresh();
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   // ---------------------------------------------------------------------------
@@ -131,71 +126,65 @@ class _SidebarBodyState extends State<_SidebarBody> {
 
   Future<void> _showAbout() async {
     final colors = context.colors;
-    await showDialog<void>(
+    await showSoftDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('关于 DeepSleep'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                '版本 v${AppInfo.version}',
-                style: TextStyle(fontSize: 14, color: colors.textPrimary),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${AppInfo.appName}（${AppInfo.appNameCn}）以 MIT 许可证开源。',
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.5,
-                  color: colors.textTertiary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '免责声明：${AppInfo.disclaimer}。',
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.5,
-                  color: colors.textTertiary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () => _openUrl(AppInfo.repoUrl),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: <Widget>[
-                      Text(
-                        'GitHub 仓库',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.brandText,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.open_in_new,
-                        size: 14,
-                        color: colors.brandText,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      title: '关于 DeepSleep',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '版本 v${AppInfo.version}',
+            style: TextStyle(fontSize: 14, color: colors.textPrimary),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
+          const SizedBox(height: 8),
+          Text(
+            '${AppInfo.appName}（${AppInfo.appNameCn}）以 MIT 许可证开源。',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.6,
+              color: colors.textTertiary,
             ),
-          ],
-        );
-      },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '免责声明：${AppInfo.disclaimer}。',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.6,
+              color: colors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => _openUrl(AppInfo.repoUrl),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    'GitHub 仓库',
+                    style: TextStyle(fontSize: 14, color: colors.brandText),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.open_in_new,
+                    size: 14,
+                    color: colors.brandText,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('关闭'),
+        ),
+      ],
     );
   }
 
@@ -248,28 +237,15 @@ class _SidebarBodyState extends State<_SidebarBody> {
 
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty) return;
-    final colors = context.colors;
-    final confirmed = await showDialog<bool>(
+    final count = _selectedIds.length;
+    final confirmed = await showSoftConfirm(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('删除对话'),
-          content: Text('删除后不可恢复。\n\n已选择 ${_selectedIds.length} 个对话。'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: colors.danger),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
+      title: '删除对话',
+      description: '删除后不可恢复。\n\n已选择 $count 个对话。',
+      confirmLabel: '删除',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     final ids = List<String>.from(_selectedIds);
     for (final id in ids) {
       await widget.services.conversations.deleteConversation(id);
@@ -309,57 +285,13 @@ class _SidebarBodyState extends State<_SidebarBody> {
   }
 
   Future<void> _rename(Conversation conversation) async {
-    final colors = context.colors;
-    final controller = TextEditingController(text: conversation.title);
-    final result = await showDialog<String>(
+    final result = await showSoftInputDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('重命名对话'),
-          content: SizedBox(
-            height: 40,
-            child: TextField(
-              controller: controller,
-              autofocus: true,
-              maxLength: 60,
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: false,
-                counterText: '',
-                hintText: '输入新的对话标题',
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.brand),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.brand),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.brand),
-                ),
-              ),
-              onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
+      title: '重命名对话',
+      initialValue: conversation.title,
+      hintText: '输入新的对话标题',
+      confirmLabel: '保存',
     );
-    controller.dispose();
     final title = result?.trim() ?? '';
     if (title.isEmpty) return;
     await widget.services.conversations.renameConversation(
@@ -390,28 +322,14 @@ class _SidebarBodyState extends State<_SidebarBody> {
   }
 
   Future<void> _delete(Conversation conversation) async {
-    final colors = context.colors;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSoftConfirm(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('删除对话'),
-          content: Text('删除后不可恢复。\n\n「${conversation.title}」将被永久删除。'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: colors.danger),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
+      title: '删除对话',
+      description: '删除后不可恢复。\n\n「${conversation.title}」将被永久删除。',
+      confirmLabel: '删除',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     await widget.services.conversations.deleteConversation(conversation.id);
   }
 
@@ -421,75 +339,55 @@ class _SidebarBodyState extends State<_SidebarBody> {
 
   Future<void> _showProfileSheet() async {
     final settings = widget.services.settings;
-    await showModalBottomSheet<void>(
+    await showSoftSheet<void>(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return ListenableBuilder(
-          listenable: settings,
-          builder: (context, _) {
-            final sheetColors = context.colors;
-            final profiles = settings.profiles;
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      title: '切换用户档案',
+      child: ListenableBuilder(
+        listenable: settings,
+        builder: (context, _) {
+          final colors = context.colors;
+          final profiles = settings.profiles;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(
+                '每个档案拥有独立的对话与长期记忆',
+                style: TextStyle(fontSize: 12.5, color: colors.textTertiary),
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                ),
+                child: ListView(
+                  shrinkWrap: true,
                   children: <Widget>[
-                    Text(
-                      '切换用户档案',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: sheetColors.textPrimary,
+                    for (final profile in profiles)
+                      _buildProfileTile(context, profile),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: colors.textSecondary,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '每个档案拥有独立的对话与长期记忆',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: sheetColors.textTertiary,
+                      title: Text(
+                        '新增档案',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.sizeOf(context).height * 0.55,
-                      ),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: <Widget>[
-                          for (final profile in profiles)
-                            _buildProfileTile(sheetContext, profile),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(
-                              Icons.add_rounded,
-                              size: 18,
-                              color: sheetColors.textSecondary,
-                            ),
-                            title: Text(
-                              '新增档案',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: sheetColors.textPrimary,
-                              ),
-                            ),
-                            onTap: () => _createProfile(sheetContext),
-                          ),
-                        ],
-                      ),
+                      onTap: () => _createProfile(context),
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -540,9 +438,10 @@ class _SidebarBodyState extends State<_SidebarBody> {
   }
 
   Future<void> _createProfile(BuildContext sheetContext) async {
-    final draft = await showDialog<_ProfileDraft>(
+    final draft = await showSoftDialog<_ProfileDraft>(
       context: sheetContext,
-      builder: (_) => const _ProfileDraftDialog(title: '新增用户档案'),
+      title: '新增用户档案',
+      child: const _ProfileDraftForm(),
     );
     if (draft == null) return;
     final services = widget.services;
@@ -581,7 +480,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _buildSearchField(context),
+              _buildSearchEntry(context),
               const SizedBox(height: 8),
               AnimatedSize(
                 duration: const Duration(milliseconds: 200),
@@ -624,45 +523,44 @@ class _SidebarBodyState extends State<_SidebarBody> {
     );
   }
 
-  Widget _buildSearchField(BuildContext context) {
-    final colors = context.colors;
-    final noBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide.none,
+  Future<void> _openSearch() async {
+    final close = widget.onClose;
+    if (close != null) close();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GlobalSearchPage(services: widget.services),
+      ),
     );
-    return SizedBox(
-      height: 40,
-      child: TextField(
-        controller: _searchController,
-        onChanged: (_) => setState(() {}),
-        style: TextStyle(fontSize: 14, color: colors.textPrimary),
-        cursorHeight: 16,
-        decoration: InputDecoration(
-          isDense: true,
-          filled: true,
-          fillColor: colors.bgHover,
-          hintText: '搜索对话内容…',
-          hintStyle: TextStyle(fontSize: 14, color: colors.textTertiary),
-          prefixIcon: Icon(Icons.search_rounded, size: 18, color: colors.textTertiary),
-          prefixIconConstraints: const BoxConstraints(minWidth: 38),
-          suffixIcon: _searchController.text.isEmpty
-              ? null
-              : IconButton(
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {});
-                  },
-                  iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: '清除搜索',
-                  icon: Icon(Icons.close_rounded, color: colors.textTertiary),
+  }
+
+  Widget _buildSearchEntry(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      color: colors.bgHover,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: _openSearch,
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            children: <Widget>[
+              const SizedBox(width: 12),
+              Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: colors.textTertiary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '搜索对话内容…',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.textTertiary,
                 ),
-          suffixIconConstraints: const BoxConstraints(minWidth: 32),
-          contentPadding: EdgeInsets.zero,
-          border: noBorder,
-          enabledBorder: noBorder,
-          focusedBorder: noBorder,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -712,21 +610,13 @@ class _SidebarBodyState extends State<_SidebarBody> {
   }
 
   Widget _buildConversationList(BuildContext context) {
-    final query = _searchController.text.trim().toLowerCase();
     final all = widget.services.conversations.conversations;
-    final filtered = query.isEmpty
-        ? all
-        : all
-            .where((conversation) =>
-                conversation.title.toLowerCase().contains(query))
-            .toList(growable: false);
-
-    if (filtered.isEmpty) {
-      return _buildEmptyState(context, hasSearch: query.isNotEmpty);
+    if (all.isEmpty) {
+      return _buildEmptyState(context);
     }
 
-    final pinned = filtered.where((c) => c.pinned).toList(growable: false);
-    final normal = filtered.where((c) => !c.pinned).toList(growable: false);
+    final pinned = all.where((c) => c.pinned).toList(growable: false);
+    final normal = all.where((c) => !c.pinned).toList(growable: false);
 
     final children = <Widget>[];
     if (pinned.isNotEmpty) {
@@ -750,7 +640,9 @@ class _SidebarBodyState extends State<_SidebarBody> {
       if (group == null || group.isEmpty) continue;
       children.add(
         Padding(
-          padding: EdgeInsets.only(top: isFirstGroup && pinned.isEmpty ? 0 : 12),
+          padding: EdgeInsets.only(
+            top: isFirstGroup && pinned.isEmpty ? 0 : 12,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
@@ -843,7 +735,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, {required bool hasSearch}) {
+  Widget _buildEmptyState(BuildContext context) {
     final colors = context.colors;
     return Center(
       child: Padding(
@@ -852,17 +744,15 @@ class _SidebarBodyState extends State<_SidebarBody> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              hasSearch ? '没有找到匹配的对话' : '还没有对话',
+              '还没有对话',
               style: TextStyle(fontSize: 14, color: colors.textTertiary),
             ),
-            if (!hasSearch) ...<Widget>[
-              const SizedBox(height: 4),
-              Text(
-                '点顶栏「+」开始第一次聊天',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: colors.textTertiary),
-              ),
-            ],
+            const SizedBox(height: 4),
+            Text(
+              '点顶栏「+」开始第一次聊天',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: colors.textTertiary),
+            ),
           ],
         ),
       ),
@@ -1164,31 +1054,18 @@ class _ProfileDraft {
   final String persona;
 }
 
-class _ProfileDraftDialog extends StatefulWidget {
-  const _ProfileDraftDialog({
-    super.key,
-    required this.title,
-    this.initialName = '',
-    this.initialEmoji = '🧑',
-    this.initialPersona = '',
-  });
-
-  final String title;
-  final String initialName;
-  final String initialEmoji;
-  final String initialPersona;
+class _ProfileDraftForm extends StatefulWidget {
+  const _ProfileDraftForm({super.key});
 
   @override
-  State<_ProfileDraftDialog> createState() => _ProfileDraftDialogState();
+  State<_ProfileDraftForm> createState() => _ProfileDraftFormState();
 }
 
-class _ProfileDraftDialogState extends State<_ProfileDraftDialog> {
-  late final TextEditingController _nameController =
-      TextEditingController(text: widget.initialName);
-  late final TextEditingController _emojiController =
-      TextEditingController(text: widget.initialEmoji);
-  late final TextEditingController _personaController =
-      TextEditingController(text: widget.initialPersona);
+class _ProfileDraftFormState extends State<_ProfileDraftForm> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emojiController =
+      TextEditingController(text: '🧑');
+  final TextEditingController _personaController = TextEditingController();
 
   @override
   void dispose() {
@@ -1198,83 +1075,93 @@ class _ProfileDraftDialogState extends State<_ProfileDraftDialog> {
     super.dispose();
   }
 
+  void _save() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+    Navigator.of(context).pop(
+      _ProfileDraft(
+        name: name,
+        emoji: _emojiController.text.trim().isEmpty
+            ? '🧑'
+            : _emojiController.text.trim(),
+        persona: _personaController.text.trim(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    final colors = context.colors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(
-                  width: 64,
-                  child: TextField(
-                    controller: _emojiController,
-                    maxLength: 2,
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(
-                      labelText: '头像',
-                      counterText: '',
-                    ),
-                  ),
+            SizedBox(
+              width: 64,
+              child: TextField(
+                controller: _emojiController,
+                maxLength: 2,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: colors.textPrimary),
+                decoration: const InputDecoration(
+                  labelText: '头像',
+                  counterText: '',
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    maxLength: 20,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: '名字',
-                      counterText: '',
-                      hintText: '例如：工作号',
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _personaController,
-              maxLines: 3,
-              maxLength: 300,
-              decoration: const InputDecoration(
-                labelText: '人设（可选）',
-                hintText: '例如：回答尽量简短，称呼我为「老板」。',
-                counterText: '',
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: TextField(
+                controller: _nameController,
+                maxLength: 20,
+                autofocus: true,
+                style: TextStyle(fontSize: 15, color: colors.textPrimary),
+                decoration: const InputDecoration(
+                  labelText: '名字',
+                  counterText: '',
+                  hintText: '例如：工作号',
+                ),
               ),
             ),
           ],
         ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _personaController,
+          maxLines: 3,
+          maxLength: 300,
+          style: TextStyle(fontSize: 15, color: colors.textPrimary),
+          decoration: const InputDecoration(
+            labelText: '人设（可选）',
+            hintText: '例如：回答尽量简短，称呼我为「老板」。',
+            counterText: '',
+          ),
         ),
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _nameController,
-          builder: (context, value, _) {
-            final name = value.text.trim();
-            return FilledButton(
-              onPressed: name.isEmpty
-                  ? null
-                  : () => Navigator.of(context).pop(
-                        _ProfileDraft(
-                          name: name,
-                          emoji: _emojiController.text.trim().isEmpty
-                              ? '🧑'
-                              : _emojiController.text.trim(),
-                          persona: _personaController.text.trim(),
-                        ),
-                      ),
-              child: const Text('保存'),
-            );
-          },
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.textSecondary,
+              ),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _nameController,
+              builder: (context, value, _) {
+                return FilledButton(
+                  onPressed: value.text.trim().isEmpty ? null : _save,
+                  child: const Text('保存'),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );

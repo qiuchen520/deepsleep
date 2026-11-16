@@ -6,81 +6,43 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_models.dart';
 import '../../../widgets/markdown_view.dart';
-import 'favicon_cluster.dart';
+import '../../../widgets/soft_modal.dart';
 
 Future<void> showSearchResultsDialog(
   BuildContext context,
   List<SearchHit> hits, {
   String title = '搜索结果',
-}) {
-  return showDialog<void>(
+}) async {
+  final colors = context.colors;
+  final screenHeight = MediaQuery.sizeOf(context).height;
+  // 给弹窗的标题/按钮/内边距留出空间，避免小屏溢出。
+  final maxHeight = (screenHeight - 320).clamp(160.0, 520.0).toDouble();
+  await showSoftDialog<void>(
     context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.36),
-    builder: (dialogContext) {
-      final colors = dialogContext.colors;
-      return Dialog(
-        backgroundColor: colors.bgElevated,
-        surfaceTintColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 620),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 10, 6),
-                child: Row(
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    FaviconCluster(hits: hits, max: 3, size: 16),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 20,
-                        color: colors.textSecondary,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 36,
-                        height: 36,
-                      ),
-                    ),
-                  ],
-                ),
+    title: title,
+    maxWidth: 640,
+    child: SizedBox(
+      height: maxHeight,
+      child: hits.isEmpty
+          ? Center(
+              child: Text(
+                '暂无搜索结果',
+                style: TextStyle(fontSize: 13, color: colors.textTertiary),
               ),
-              Divider(height: 1, color: colors.border),
-              Flexible(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  itemCount: hits.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 24,
-                    color: colors.border,
-                  ),
-                  itemBuilder: (context, index) {
-                    final hit = hits[index];
-                    return _SearchResultItem(hit: hit, index: index + 1);
-                  },
-                ),
+            )
+          : ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: hits.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 24,
+                color: colors.border,
               ),
-            ],
-          ),
-        ),
-      );
-    },
+              itemBuilder: (context, index) => _SearchResultItem(
+                hit: hits[index],
+                index: index + 1,
+              ),
+            ),
+    ),
   );
 }
 

@@ -122,6 +122,9 @@ class AppSettings {
     this.maxTokens = 4096,
     this.activeProfileId = 'default',
     this.onboardingDone = false,
+    this.voiceInputEnabled = true,
+    this.ttsEnabled = true,
+    this.ttsVoice = 'stella',
   });
 
   final String baseUrl;
@@ -153,6 +156,15 @@ class AppSettings {
   final String activeProfileId;
   final bool onboardingDone;
 
+  /// 语音输入开关。
+  final bool voiceInputEnabled;
+
+  /// 朗读开关。
+  final bool ttsEnabled;
+
+  /// 朗读音色（DeepSeek TTS voice_id）。
+  final String ttsVoice;
+
   bool get searchEnabled => searchBackend != SearchBackend.off;
 
   String get effectiveModel => deepThinking ? reasonerModel : chatModel;
@@ -179,6 +191,9 @@ class AppSettings {
     int? maxTokens,
     String? activeProfileId,
     bool? onboardingDone,
+    bool? voiceInputEnabled,
+    bool? ttsEnabled,
+    String? ttsVoice,
   }) {
     return AppSettings(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -202,6 +217,9 @@ class AppSettings {
       maxTokens: maxTokens ?? this.maxTokens,
       activeProfileId: activeProfileId ?? this.activeProfileId,
       onboardingDone: onboardingDone ?? this.onboardingDone,
+      voiceInputEnabled: voiceInputEnabled ?? this.voiceInputEnabled,
+      ttsEnabled: ttsEnabled ?? this.ttsEnabled,
+      ttsVoice: ttsVoice ?? this.ttsVoice,
     );
   }
 
@@ -227,6 +245,9 @@ class AppSettings {
         'maxTokens': maxTokens,
         'activeProfileId': activeProfileId,
         'onboardingDone': onboardingDone,
+        'voiceInputEnabled': voiceInputEnabled,
+        'ttsEnabled': ttsEnabled,
+        'ttsVoice': ttsVoice,
       };
 
   static AppSettings fromJson(Map<String, dynamic> json) => AppSettings(
@@ -258,5 +279,8 @@ class AppSettings {
         maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
         activeProfileId: json['activeProfileId'] as String? ?? 'default',
         onboardingDone: json['onboardingDone'] as bool? ?? false,
+        voiceInputEnabled: json['voiceInputEnabled'] as bool? ?? true,
+        ttsEnabled: json['ttsEnabled'] as bool? ?? true,
+        ttsVoice: json['ttsVoice'] as String? ?? 'stella',
       );
 }

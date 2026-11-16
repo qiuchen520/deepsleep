@@ -210,6 +210,44 @@ class AppDatabase {
         .toList();
   }
 
+  /// 全局搜索：按标题匹配会话。
+  Future<List<Conversation>> searchConversations(
+    String query, {
+    int limit = 50,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return <Conversation>[];
+    final rows = await db.query(
+      'conversations',
+      where: 'title LIKE ?',
+      whereArgs: <Object?>['%$q%'],
+      orderBy: 'updated_at DESC',
+      limit: limit,
+    );
+    return rows
+        .map((r) => Conversation.fromJson(_decode(r['payload'])))
+        .toList();
+  }
+
+  /// 全局搜索：按内容匹配消息（JSON payload LIKE）。
+  Future<List<ChatMessage>> searchMessages(
+    String query, {
+    int limit = 80,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return <ChatMessage>[];
+    final rows = await db.query(
+      'messages',
+      where: 'payload LIKE ?',
+      whereArgs: <Object?>['%$q%'],
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return rows
+        .map((r) => ChatMessage.fromJson(_decode(r['payload'])))
+        .toList();
+  }
+
   Future<Conversation?> getConversation(String id) async {
     final rows = await db.query(
       'conversations',

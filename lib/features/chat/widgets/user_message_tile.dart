@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_models.dart';
 import '../../../state/conversation_controller.dart';
+import '../../../widgets/soft_modal.dart';
 import 'attachment_preview.dart';
 
 class UserMessageTile extends StatelessWidget {
@@ -155,88 +156,16 @@ class UserMessageTile extends StatelessWidget {
       );
       return;
     }
-    final result = await showDialog<String>(
+    final result = await showSoftInputDialog(
       context: context,
-      builder: (dialogContext) => _EditMessageDialog(
-        initialText: message.displayContent,
-      ),
+      title: '编辑消息',
+      description: '会删除该消息之后的回复，并重新生成',
+      initialValue: message.displayContent,
+      hintText: '输入消息内容',
+      confirmLabel: '发送',
+      maxLines: 6,
     );
     if (result == null || result.trim().isEmpty) return;
     await controller.editUserMessage(message.id, result);
-  }
-}
-
-class _EditMessageDialog extends StatefulWidget {
-  const _EditMessageDialog({required this.initialText});
-
-  final String initialText;
-
-  @override
-  State<_EditMessageDialog> createState() => _EditMessageDialogState();
-}
-
-class _EditMessageDialogState extends State<_EditMessageDialog> {
-  late final TextEditingController _textController;
-
-  @override
-  void initState() {
-    super.initState();
-    _textController = TextEditingController(text: widget.initialText);
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return AlertDialog(
-      title: Text(
-        '编辑消息',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: colors.textPrimary,
-        ),
-      ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: TextField(
-          controller: _textController,
-          autofocus: true,
-          minLines: 3,
-          maxLines: 8,
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.55,
-            color: colors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: '输入消息内容',
-            filled: false,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: colors.border),
-            ),
-          ),
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            '取消',
-            style: TextStyle(color: colors.textSecondary),
-          ),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_textController.text),
-          child: const Text('发送'),
-        ),
-      ],
-    );
   }
 }

@@ -6,19 +6,21 @@
 /// 字号 13/20；免责声明 11/16 居中。
 library;
 
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/profile_models.dart';
-import '../../../services/voice_service.dart';
 import '../../../state/app_services.dart';
 import '../../../state/conversation_controller.dart';
 import '../../../state/settings_controller.dart';
 import 'attachment_preview.dart';
 import 'model_picker_sheet.dart';
 
-class Composer extends StatelessWidget {
+class Composer extends StatefulWidget {
   const Composer({
     super.key,
     required this.controller,
@@ -36,6 +38,32 @@ class Composer extends StatelessWidget {
   final VoidCallback onOpenSettings;
   final AppServices services;
 
+  @override
+  State<Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<Composer> {
+  final GlobalKey _cardKey = GlobalKey();
+
+  // 长按录音状态。
+  bool _recording = false;
+  bool _cancelArmed = false;
+  bool _voiceStarted = false;
+  DateTime? _recordStartedAt;
+  Timer? _recordTicker;
+  Timer? _longPressTimer;
+  OverlayEntry? _recordingOverlay;
+  Future<bool>? _startFuture;
+  int? _activePointer;
+  Offset? _pointerDownPosition;
+
+  ConversationController get controller => widget.controller;
+  SettingsController get settings => widget.settings;
+  TextEditingController get textController => widget.textController;
+  FocusNode get focusNode => widget.focusNode;
+  VoidCallback get onOpenSettings => widget.onOpenSettings;
+  AppServices get services => widget.services;
+
   bool get _searchConfigured {
     final appSettings = settings.settings;
     switch (appSettings.searchBackend) {
@@ -51,7 +79,7 @@ class Composer extends StatelessWidget {
   }
 
   void _send() {
-    if (controller.streaming) return;
+    if (_recording || controller.streaming) return;
     final text = textController.text;
     if (text.trim().isEmpty && controller.pendingAttachments.isEmpty) return;
     focusNode.requestFocus();
@@ -144,6 +172,7 @@ class Composer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               AnimatedContainer(
+                key: _cardKey,
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 decoration: BoxDecoration(
@@ -180,9 +209,17 @@ class Composer extends StatelessWidget {
                       ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
-                      child: TextField(
+                      child: Listener(
+                        onPointerDown: _handlePointerDown,
+                        onPointerMove: _handlePointerMove,
+                        onPointerUp: _handlePointerUp,
+                        onPointerCancel: _handlePointerCancel,
+                        child: TextField(
                           controller: textController,
                           focusNode: focusNode,
+                          readOnly: _recording,
+                          // 长按用于语音输入，因此关闭输入框自带的文本选择手势。
+                          enableInteractiveSelection: false,
                           minLines: 1,
                           maxLines: 8,
                           keyboardType: TextInputType.multiline,
@@ -215,6 +252,7 @@ class Composer extends StatelessWidget {
                               ),
                             ),
                           ),
+                        ),
                       ),
                     ),
                     Padding(
@@ -261,12 +299,6 @@ class Composer extends StatelessWidget {
                           ),
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
-                            child: _VoiceButton(
-                              textController: textController,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
                             child: _streamOrSendButton(),
                           ),
                         ],
@@ -308,7 +340,7 @@ class Composer extends StatelessWidget {
         final hasInput =
             value.text.trim().isNotEmpty ||
             controller.pendingAttachments.isNotEmpty;
-        final enabled = controller.canSend && hasInput;
+        final enabled = !_recording && controller.canSend && hasInput;
         return _SendButton(
           icon: Icons.arrow_upward_rounded,
           tooltip: '发送',
@@ -317,6 +349,205 @@ class Composer extends StatelessWidget {
         );
       },
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 长按语音输入（松开发送 · 上滑取消）
+  // ---------------------------------------------------------------------------
+
+  void _handlePointerDown(PointerDownEvent event) {
+    if (_recording || _longPressTimer != null) return;
+    _activePointer = event.pointer;
+    _pointerDownPosition = event.position;
+    _longPressTimer = Timer(const Duration(milliseconds: 380), () {
+      _longPressTimer = null;
+      _beginVoice();
+    });
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    if (event.pointer != _activePointer) return;
+    final down = _pointerDownPosition;
+    if (down == null) return;
+    if (!_recording) {
+      // 明显移动视为滚动 / 选择意图，取消长按录音。
+      if ((event.position - down).distance > 12) _cancelLongPressTimer();
+      return;
+    }
+    final cancel = event.position.dy - down.dy < -60;
+    if (cancel != _cancelArmed) {
+      setState(() => _cancelArmed = cancel);
+      _recordingOverlay?.markNeedsBuild();
+    }
+  }
+
+  void _handlePointerUp(PointerUpEvent event) {
+    _cancelLongPressTimer();
+    if (event.pointer != _activePointer) return;
+    _activePointer = null;
+    _pointerDownPosition = null;
+    if (_recording) _finishVoice(cancel: _cancelArmed);
+  }
+
+  void _handlePointerCancel(PointerCancelEvent event) {
+    _cancelLongPressTimer();
+    final wasActive = event.pointer == _activePointer;
+    _activePointer = null;
+    _pointerDownPosition = null;
+    if (wasActive && _recording) _finishVoice(cancel: true);
+  }
+
+  void _cancelLongPressTimer() {
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
+  }
+
+  Future<bool> _startRecordingSafely() async {
+    try {
+      return await services.voice.startRecording();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _beginVoice() async {
+    if (_recording) return;
+    focusNode.unfocus();
+    setState(() {
+      _recording = true;
+      _cancelArmed = false;
+      _voiceStarted = false;
+      _recordStartedAt = DateTime.now();
+    });
+    _recordTicker?.cancel();
+    _recordTicker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      _recordingOverlay?.markNeedsBuild();
+    });
+    _insertRecordingOverlay();
+    final future = _startRecordingSafely();
+    _startFuture = future;
+    final ok = await future;
+    if (!mounted || !_recording) return;
+    if (ok) {
+      setState(() => _voiceStarted = true);
+      _recordingOverlay?.markNeedsBuild();
+    } else {
+      _teardownRecording();
+      _showSnack('麦克风不可用或权限被拒绝');
+    }
+  }
+
+  Future<void> _finishVoice({required bool cancel}) async {
+    if (!_recording) return;
+    final future = _startFuture;
+    if (!_voiceStarted && future != null) {
+      final ok = await future;
+      if (!mounted || !_recording) return;
+      if (!ok) {
+        _teardownRecording();
+        _showSnack('麦克风不可用或权限被拒绝');
+        return;
+      }
+    }
+    _teardownRecording();
+    if (cancel) {
+      try {
+        await services.voice.cancelRecording();
+      } catch (_) {
+        // 静默：取消失败不影响 UI。
+      }
+      return;
+    }
+    String? text;
+    try {
+      text = await services.voice.stopAndTranscribe();
+    } catch (_) {
+      text = null;
+    }
+    if (!mounted) return;
+    final content = text?.trim() ?? '';
+    if (content.isEmpty) {
+      _showSnack('没有识别到内容，请重试');
+      return;
+    }
+    textController.value = TextEditingValue(
+      text: content,
+      selection: TextSelection.collapsed(offset: content.length),
+    );
+    controller.sendMessage(content);
+    textController.clear();
+  }
+
+  void _teardownRecording() {
+    _recordTicker?.cancel();
+    _recordTicker = null;
+    _recordingOverlay?.remove();
+    _recordingOverlay = null;
+    _startFuture = null;
+    if (!mounted) return;
+    setState(() {
+      _recording = false;
+      _cancelArmed = false;
+      _voiceStarted = false;
+      _recordStartedAt = null;
+    });
+  }
+
+  void _insertRecordingOverlay() {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final entry = OverlayEntry(builder: (overlayContext) {
+      final screenHeight = MediaQuery.sizeOf(overlayContext).height;
+      final keyboard = MediaQuery.viewInsetsOf(overlayContext).bottom;
+      var bottom = screenHeight - 220;
+      final cardContext = _cardKey.currentContext;
+      if (cardContext != null) {
+        final renderObject = cardContext.findRenderObject();
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          bottom =
+              screenHeight - renderObject.localToGlobal(Offset.zero).dy + 10;
+        }
+      }
+      bottom = bottom.clamp(24.0, screenHeight - 80).toDouble();
+      final start = _recordStartedAt;
+      final seconds =
+          start == null ? 0 : DateTime.now().difference(start).inSeconds;
+      return Positioned(
+        left: 0,
+        right: 0,
+        bottom: bottom + keyboard,
+        child: IgnorePointer(
+          child: Center(
+            child: _RecordingCapsule(
+              cancelArmed: _cancelArmed,
+              seconds: seconds,
+            ),
+          ),
+        ),
+      );
+    });
+    _recordingOverlay = entry;
+    overlay.insert(entry);
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _cancelLongPressTimer();
+    _recordTicker?.cancel();
+    _recordingOverlay?.remove();
+    _recordingOverlay = null;
+    if (_recording) {
+      unawaited(
+        services.voice.cancelRecording().catchError((Object _) {}),
+      );
+    }
+    super.dispose();
   }
 }
 
@@ -393,79 +624,6 @@ class _CircleButton extends StatelessWidget {
             color: enabled
                 ? colors.textSecondary
                 : colors.textTertiary.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VoiceButton extends StatefulWidget {
-  const _VoiceButton({required this.textController});
-
-  final TextEditingController textController;
-
-  @override
-  State<_VoiceButton> createState() => _VoiceButtonState();
-}
-
-class _VoiceButtonState extends State<_VoiceButton> {
-  bool _listening = false;
-
-  Future<void> _toggle() async {
-    final voice = VoiceService.instance;
-    if (_listening) {
-      await voice.stopListening();
-      if (mounted) setState(() => _listening = false);
-      return;
-    }
-    final ok = await voice.initSpeech();
-    if (!ok) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('语音识别不可用，请检查麦克风权限')),
-        );
-      return;
-    }
-    setState(() => _listening = true);
-    final base = widget.textController.text;
-    await voice.startListening(
-      onResult: (text, isFinal) {
-        final merged = base.isEmpty ? text : '$base${text.trim()}';
-        widget.textController.value = TextEditingValue(
-          text: merged,
-          selection: TextSelection.collapsed(offset: merged.length),
-        );
-      },
-      onDone: () {
-        if (mounted) setState(() => _listening = false);
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Tooltip(
-      message: _listening ? '停止语音输入' : '语音输入',
-      child: InkWell(
-        onTap: _toggle,
-        borderRadius: BorderRadius.circular(100),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _listening ? colors.brand : colors.bgHover,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            _listening ? Icons.mic_rounded : Icons.mic_none_rounded,
-            size: 20,
-            color: _listening ? Colors.white : colors.textSecondary,
           ),
         ),
       ),
@@ -564,6 +722,102 @@ class _Toggle extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 录音浮层：底部居中的毛玻璃胶囊（红点脉冲 + 计时 + 上滑取消提示）。
+class _RecordingCapsule extends StatefulWidget {
+  const _RecordingCapsule({required this.cancelArmed, required this.seconds});
+
+  final bool cancelArmed;
+  final int seconds;
+
+  @override
+  State<_RecordingCapsule> createState() => _RecordingCapsuleState();
+}
+
+class _RecordingCapsuleState extends State<_RecordingCapsule>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 820),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final hintColor =
+        widget.cancelArmed ? colors.danger : colors.textSecondary;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: colors.bgElevated.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colors.border.withValues(alpha: 0.7),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              FadeTransition(
+                opacity: Tween<double>(begin: 0.3, end: 1).animate(_pulse),
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: colors.danger,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${widget.seconds} 秒',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 24 / 14,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                widget.cancelArmed ? '松开取消' : '松开发送 · 上滑取消',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 24 / 14,
+                  fontWeight: FontWeight.w500,
+                  color: hintColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
