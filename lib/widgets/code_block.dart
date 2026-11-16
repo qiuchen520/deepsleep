@@ -358,14 +358,14 @@ class _CodeBlockState extends State<CodeBlock> {
     final label = language ?? 'text';
     final baseStyle = TextStyle(
       fontFamily: 'monospace',
-      fontSize: 12.5,
-      height: 1.65,
+      fontSize: 13,
+      height: 22 / 13,
       color: colors.textPrimary,
     );
     final spans = _highlight(widget.code, spec, baseStyle, colors);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 16),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: colors.codeBg,
@@ -375,16 +375,17 @@ class _CodeBlockState extends State<CodeBlock> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 6, 0),
+          Container(
+            color: colors.codeBanner,
+            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
             child: Row(
               children: <Widget>[
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: colors.textTertiary,
+                    fontSize: 13,
+                    height: 20 / 13,
+                    color: colors.textSecondary,
                   ),
                 ),
                 const Spacer(),
@@ -406,7 +407,7 @@ class _CodeBlockState extends State<CodeBlock> {
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            padding: const EdgeInsets.all(16),
             child: SelectableText.rich(
               TextSpan(children: spans),
               style: baseStyle,

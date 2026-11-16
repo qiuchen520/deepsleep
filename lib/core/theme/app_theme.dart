@@ -53,47 +53,47 @@ class AppColors extends ThemeExtension<AppColors> {
 
   static const AppColors light = AppColors(
     bgBase: Color(0xFFFFFFFF),
-    bgSidebar: Color(0xFFFAFAFB),
+    bgSidebar: Color(0xFFF9FAFB),
     bgElevated: Color(0xFFFFFFFF),
-    bgHover: Color(0x0A000000),
-    bgActive: Color(0x10000000),
-    bgInput: Color(0xFFF5F6F8),
-    userBubble: Color(0xFFEFF3FF),
-    codeBg: Color(0xFFF7F8FA),
-    codeBanner: Color(0xFFEFF1F4),
-    border: Color(0x12000000),
-    borderStrong: Color(0x1F000000),
-    textPrimary: Color(0xFF17181A),
-    textSecondary: Color(0xFF5E6572),
-    textTertiary: Color(0xFF9AA0AA),
-    brand: Color(0xFF4D6BFE),
-    brandSoft: Color(0xFFEEF2FF),
-    brandText: Color(0xFF4D6BFE),
-    danger: Color(0xFFE5484D),
+    bgHover: Color(0x0F263148), // rgba(38,49,72,.06)
+    bgActive: Color(0x1A263148), // rgba(38,49,72,.10)
+    bgInput: Color(0xFFFFFFFF),
+    userBubble: Color(0xFFEDF3FE),
+    codeBg: Color(0xFFF9FAFB),
+    codeBanner: Color(0xFFF9FAFB),
+    border: Color(0x0A000000), // l1 rgba(0,0,0,.04)
+    borderStrong: Color(0x1A000000), // l2 rgba(0,0,0,.10)
+    textPrimary: Color(0xFF0F1115),
+    textSecondary: Color(0xFF61666B),
+    textTertiary: Color(0xFF81858C),
+    brand: Color(0xFF3964FE),
+    brandSoft: Color(0xFFEDF3FE),
+    brandText: Color(0xFF3964FE),
+    danger: Color(0xFFEC1313),
     success: Color(0xFF12A594),
     warning: Color(0xFFF5A623),
-    shadow: Color(0x0F000000),
+    shadow: Color(0x14000000),
   );
 
   static const AppColors dark = AppColors(
-    bgBase: Color(0xFF1A1B1D),
-    bgSidebar: Color(0xFF141517),
-    bgElevated: Color(0xFF232427),
-    bgHover: Color(0x0DFFFFFF),
-    bgActive: Color(0x14FFFFFF),
-    bgInput: Color(0xFF26272A),
-    userBubble: Color(0xFF2A2D36),
-    codeBg: Color(0xFF121315),
-    codeBanner: Color(0xFF222326),
-    border: Color(0x14FFFFFF),
-    borderStrong: Color(0x24FFFFFF),
-    textPrimary: Color(0xFFECEDEF),
-    textSecondary: Color(0xFFA2A7B0),
-    textTertiary: Color(0xFF71767F),
-    brand: Color(0xFF6B87FF),
-    brandSoft: Color(0xFF22283D),
-    brandText: Color(0xFF8DA3FF),
-    danger: Color(0xFFFF6B6E),
+    bgBase: Color(0xFF151517),
+    bgSidebar: Color(0xFF1B1B1C),
+    bgElevated: Color(0xFF2C2C2E),
+    bgHover: Color(0x14FFFFFF), // .08
+    bgActive: Color(0x24FFFFFF), // .14
+    bgInput: Color(0xFF2C2C2E),
+    userBubble: Color(0xFF2C2C2E),
+    codeBg: Color(0xFF1B1B1C),
+    codeBanner: Color(0xFF2C2C2E),
+    border: Color(0x0FFFFFFF), // .06
+    borderStrong: Color(0x1FFFFFFF), // .12
+    textPrimary: Color(0xFFF9FAFB),
+    textSecondary: Color(0xFFCFD3D6),
+    textTertiary: Color(0xFFADB2B8),
+    brand: Color(0xFF5686FE),
+    brandSoft: Color(0xFF283142),
+    brandText: Color(0xFF679EFE),
+    danger: Color(0xFFF25A5A),
     success: Color(0xFF3DD9C4),
     warning: Color(0xFFFFC55C),
     shadow: Color(0x66000000),
@@ -231,7 +231,7 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: textTheme.copyWith(
-        bodyMedium: textTheme.bodyMedium?.copyWith(fontSize: 15.5, height: 1.75),
+        bodyMedium: textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.75),
         bodySmall: textTheme.bodySmall?.copyWith(fontSize: 12.5),
         titleMedium: textTheme.titleMedium?.copyWith(
           fontSize: 16,

@@ -29,16 +29,24 @@ void main() {
         '| 列1 | 列2 |\n| --- | --- |\n| a | b |\n\n'
         '- 列表项一\n- 列表项二\n\n> 引用内容\n\n[链接](https://example.com)\n';
     await tester.pumpWidget(_host(const MarkdownView(data: sample)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('Markdown 带 chart 代码块可以渲染', (tester) async {
-    const sample = '```chart\n'
+    const sample = '下面是图表：\n\n'
+        '```chart\n'
         '{"type":"bar","labels":["一","二"],"values":[3,5]}\n'
-        '```\n';
+        '```\n\n结束。';
     await tester.pumpWidget(_host(const MarkdownView(data: sample)));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Markdown 以代码块结尾也能渲染', (tester) async {
+    const sample = '看代码：\n\n```dart\nvoid main() {}\n```';
+    await tester.pumpWidget(_host(const MarkdownView(data: sample)));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
@@ -46,6 +54,7 @@ void main() {
     await tester.pumpWidget(
       _host(const CodeBlock(code: 'final x = 1;', language: 'dart')),
     );
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
@@ -55,6 +64,7 @@ void main() {
         source: '{"type":"line","labels":["一","二"],"values":[3,5]}',
       )),
     );
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 

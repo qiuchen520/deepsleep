@@ -31,3 +31,10 @@ key.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# 签名文件绝不入库
+*.p12
+*.jks
+*.keystore
+key.properties
+signing/

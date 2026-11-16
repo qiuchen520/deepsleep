@@ -44,7 +44,7 @@ class RootShell extends StatefulWidget {
 
   final AppServices services;
 
-  static const double sideBarWidth = 280;
+  static const double sideBarWidth = 261;
   static const double wideBreakpoint = 860;
 
   @override
