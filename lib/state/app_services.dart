@@ -18,6 +18,8 @@ import '../data/models/profile_models.dart';
 import '../services/attachment_service_impl.dart';
 import '../services/backup_service_impl.dart';
 import '../services/contracts.dart';
+import '../services/chat_api_router.dart';
+import '../services/deepseek_anthropic_client.dart';
 import '../services/deepseek_client.dart';
 import '../services/export_service_impl.dart';
 import '../services/search_router.dart';
@@ -76,6 +78,14 @@ class AppServices {
       apiKeyProvider: () => settings.apiKey,
       baseUrlProvider: () => settings.settings.baseUrl,
     );
+    final serverSearchClient = DeepSeekAnthropicClient(
+      apiKeyProvider: () => settings.apiKey,
+      baseUrlProvider: () => settings.settings.baseUrl,
+    );
+    final chatApi = ChatApiRouter(
+      standard: deepSeekClient,
+      serverSearch: serverSearchClient,
+    );
 
     final store = SqliteMemoryStore(database);
     final localEngine = LocalMemoryEngine(
@@ -108,7 +118,7 @@ class AppServices {
 
     final conversations = ConversationController(
       database: database,
-      api: deepSeekClient,
+      api: chatApi,
       memoryEngine: engine,
       search: search,
       attachments: attachments,
@@ -124,7 +134,7 @@ class AppServices {
     final services = AppServices(
       database: database,
       settings: settings,
-      api: deepSeekClient,
+      api: chatApi,
       memoryStore: store,
       memoryEngine: engine,
       search: search,

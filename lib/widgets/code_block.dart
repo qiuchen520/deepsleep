@@ -359,36 +359,32 @@ class _CodeBlockState extends State<CodeBlock> {
     final baseStyle = TextStyle(
       fontFamily: 'monospace',
       fontSize: 12.5,
-      height: 1.55,
+      height: 1.65,
       color: colors.textPrimary,
     );
     final spans = _highlight(widget.code, spec, baseStyle, colors);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: colors.codeBg,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Container(
-            color: colors.codeBanner,
-            padding: const EdgeInsets.only(left: 12, right: 4, top: 2, bottom: 2),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 6, 0),
             child: Row(
               children: <Widget>[
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 11,
-                    height: 1.8,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
-                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textTertiary,
                   ),
                 ),
                 const Spacer(),
@@ -396,30 +392,12 @@ class _CodeBlockState extends State<CodeBlock> {
                   onTap: _copy,
                   borderRadius: BorderRadius.circular(AppRadius.xs),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Icon(
-                          _copied ? Icons.check_rounded : Icons.copy_rounded,
-                          size: 13,
-                          color:
-                              _copied ? colors.success : colors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _copied ? '已复制' : '复制',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _copied
-                                ? colors.success
-                                : colors.textSecondary,
-                          ),
-                        ),
-                      ],
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      _copied ? Icons.check_rounded : Icons.copy_rounded,
+                      size: 14,
+                      color:
+                          _copied ? colors.success : colors.textTertiary,
                     ),
                   ),
                 ),
@@ -428,7 +406,7 @@ class _CodeBlockState extends State<CodeBlock> {
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
             child: SelectableText.rich(
               TextSpan(children: spans),
               style: baseStyle,

@@ -115,64 +115,57 @@ class ChartBlock extends StatelessWidget {
     ];
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       decoration: BoxDecoration(
-        color: colors.bgElevated,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.border),
+        color: colors.bgInput,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-            child: Row(
-              children: <Widget>[
-                Icon(Icons.insights_outlined, size: 15, color: colors.brandText),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    data.title.trim().isEmpty ? '数据图表' : data.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colors.textPrimary,
-                    ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  data.title.trim().isEmpty ? '数据图表' : data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  data.kind.name,
-                  style: TextStyle(fontSize: 11, color: colors.textTertiary),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 10, 12, 10),
-            child: SizedBox(
-              height: 210,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _ChartPainter(
-                  data: data,
-                  palette: palette,
-                  gridColor: colors.border,
-                  labelColor: colors.textTertiary,
-                ),
-                child: const SizedBox.expand(),
               ),
+              const SizedBox(width: 8),
+              Text(
+                data.kind.name,
+                style: TextStyle(fontSize: 11, color: colors.textTertiary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 200,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _ChartPainter(
+                data: data,
+                palette: palette,
+                gridColor: colors.border,
+                labelColor: colors.textTertiary,
+              ),
+              child: const SizedBox.expand(),
             ),
           ),
           if (data.kind == _ChartKind.pie)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              padding: const EdgeInsets.only(top: 2),
               child: Wrap(
                 spacing: 12,
-                runSpacing: 6,
+                runSpacing: 4,
                 children: <Widget>[
                   for (var i = 0; i < data.labels.length; i++)
                     _LegendItem(
@@ -208,7 +201,7 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: colors.textSecondary),
+          style: TextStyle(fontSize: 11, color: colors.textTertiary),
         ),
       ],
     );

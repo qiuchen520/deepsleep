@@ -4,7 +4,7 @@
 
 **一个拥有长期记忆知识网的原生 AI 聊天客户端**
 
-参考 DeepSeek 官方 Web Demo 的交互与视觉，用 Flutter 重写为原生 App，
+参考 DeepSeek 官方 Web Demo 的交互与视觉（极简白底 + 品牌蓝），用 Flutter 重写为原生 App，
 并补上它缺少的那一块：**跨会话、跨设备的长期记忆**。
 
 [![build](https://github.com/deepsleep-app/deepsleep/actions/workflows/build.yml/badge.svg)](https://github.com/deepsleep-app/deepsleep/actions/workflows/build.yml)
@@ -42,7 +42,7 @@ DeepSleep 在保留原有交互（流式输出、深度思考、联网搜索、�
 | --- | --- |
 | 流式输出 | SSE 增量渲染，可随时停止 |
 | 深度思考 | `deepseek-reasoner` 的 `reasoning_content` 折叠展示，显示思考耗时 |
-| 联网搜索 | 可选 Tavily / Serper，结果以卡片展示并注入上下文 |
+| 联网搜索 | 默认使用 **DeepSeek 内置搜索**（官方同款 web_search 工具，无需第三方 Key），也可切换 Tavily / Serper |
 | 文件对话 | 文本 / Markdown / 代码 / JSON / CSV / DOCX 本地解析注入 |
 | 多会话 | 按 今天 / 昨天 / 7 天内 / 30 天内 / 更早 分组，支持搜索、置顶、重命名、删除 |
 | 消息版本 | 重新生成保留历史版本，可 `< 1/2 >` 来回切换 |
@@ -146,7 +146,7 @@ flutter build apk --release --split-per-abi
 | 推理模型 | `deepseek-reasoner` | 深度思考模式使用 |
 | 上下文压缩阈值 | `4000` | 超过即压缩前半段 |
 | 记忆注入预算 | `600` | 每轮注入 System Prompt 的记忆 token 上限 |
-| 联网搜索 | 关闭 | Tavily / Serper，需各自 API Key |
+| 联网搜索 | **DeepSeek 内置搜索** | 使用官方 `/anthropic/v1/messages` 的 `deepseek_web_search` 工具；也可切换 Tavily / Serper |
 | 记忆后端 | 本地知识网 | 可选 mem0 云平台（实验） |
 
 密钥保存在 Android Keystore（`flutter_secure_storage`），不进入备份文件。

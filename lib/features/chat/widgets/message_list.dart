@@ -1,4 +1,4 @@
-/// 消息列表：按角色分派到用户气泡 / 助手 Markdown 消息，并居中限制最大宽度。
+/// 消息列表：按角色分派到用户气泡 / 助手 Markdown 消息，内容区最大宽度 780。
 library;
 
 import 'package:flutter/material.dart';
@@ -19,7 +19,7 @@ class MessageList extends StatelessWidget {
   final ConversationController controller;
   final ScrollController scrollController;
 
-  static const double maxContentWidth = 820;
+  static const double maxContentWidth = 780;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +27,7 @@ class MessageList extends StatelessWidget {
     final lastAssistantId = controller.lastAssistantMessage?.id;
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemCount: messages.length,
       itemBuilder: (context, index) {
@@ -42,7 +42,7 @@ class MessageList extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: maxContentWidth),
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.only(bottom: 20),
               child: _MessageBody(
                 message: message,
                 controller: controller,

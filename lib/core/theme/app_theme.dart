@@ -53,45 +53,45 @@ class AppColors extends ThemeExtension<AppColors> {
 
   static const AppColors light = AppColors(
     bgBase: Color(0xFFFFFFFF),
-    bgSidebar: Color(0xFFF9FBFF),
+    bgSidebar: Color(0xFFFAFAFB),
     bgElevated: Color(0xFFFFFFFF),
-    bgHover: Color(0x0F263148),
-    bgActive: Color(0x1A263148),
-    bgInput: Color(0xFFFFFFFF),
+    bgHover: Color(0x0A000000),
+    bgActive: Color(0x10000000),
+    bgInput: Color(0xFFF5F6F8),
     userBubble: Color(0xFFEFF3FF),
-    codeBg: Color(0xFFF6F7F9),
+    codeBg: Color(0xFFF7F8FA),
     codeBanner: Color(0xFFEFF1F4),
-    border: Color(0x14263148),
-    borderStrong: Color(0x24263148),
-    textPrimary: Color(0xFF1B1B1F),
-    textSecondary: Color(0xFF5C6270),
-    textTertiary: Color(0xFF8A91A0),
+    border: Color(0x12000000),
+    borderStrong: Color(0x1F000000),
+    textPrimary: Color(0xFF17181A),
+    textSecondary: Color(0xFF5E6572),
+    textTertiary: Color(0xFF9AA0AA),
     brand: Color(0xFF4D6BFE),
-    brandSoft: Color(0xFFEDF1FF),
+    brandSoft: Color(0xFFEEF2FF),
     brandText: Color(0xFF4D6BFE),
     danger: Color(0xFFE5484D),
     success: Color(0xFF12A594),
     warning: Color(0xFFF5A623),
-    shadow: Color(0x14000000),
+    shadow: Color(0x0F000000),
   );
 
   static const AppColors dark = AppColors(
-    bgBase: Color(0xFF1C1D22),
-    bgSidebar: Color(0xFF16171B),
-    bgElevated: Color(0xFF24252B),
-    bgHover: Color(0x14FFFFFF),
-    bgActive: Color(0x24FFFFFF),
-    bgInput: Color(0xFF24252B),
-    userBubble: Color(0xFF2C3040),
-    codeBg: Color(0xFF15161A),
-    codeBanner: Color(0xFF23242A),
-    border: Color(0x1FFFFFFF),
-    borderStrong: Color(0x33FFFFFF),
-    textPrimary: Color(0xFFECEDF0),
-    textSecondary: Color(0xFFA6ABB8),
-    textTertiary: Color(0xFF767C8A),
+    bgBase: Color(0xFF1A1B1D),
+    bgSidebar: Color(0xFF141517),
+    bgElevated: Color(0xFF232427),
+    bgHover: Color(0x0DFFFFFF),
+    bgActive: Color(0x14FFFFFF),
+    bgInput: Color(0xFF26272A),
+    userBubble: Color(0xFF2A2D36),
+    codeBg: Color(0xFF121315),
+    codeBanner: Color(0xFF222326),
+    border: Color(0x14FFFFFF),
+    borderStrong: Color(0x24FFFFFF),
+    textPrimary: Color(0xFFECEDEF),
+    textSecondary: Color(0xFFA2A7B0),
+    textTertiary: Color(0xFF71767F),
     brand: Color(0xFF6B87FF),
-    brandSoft: Color(0xFF232A45),
+    brandSoft: Color(0xFF22283D),
     brandText: Color(0xFF8DA3FF),
     danger: Color(0xFFFF6B6E),
     success: Color(0xFF3DD9C4),
@@ -181,10 +181,10 @@ class AppColors extends ThemeExtension<AppColors> {
 class AppRadius {
   AppRadius._();
   static const double xs = 6;
-  static const double sm = 10;
+  static const double sm = 8;
   static const double md = 14;
-  static const double lg = 20;
-  static const double xl = 24;
+  static const double lg = 16;
+  static const double xl = 22;
   static const double pill = 999;
 }
 
@@ -194,7 +194,7 @@ class AppSpacing {
   static const double sm = 8;
   static const double md = 12;
   static const double lg = 16;
-  static const double xl = 24;
+  static const double xl = 22;
   static const double xxl = 32;
 }
 
@@ -231,7 +231,7 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: textTheme.copyWith(
-        bodyMedium: textTheme.bodyMedium?.copyWith(fontSize: 15, height: 1.7),
+        bodyMedium: textTheme.bodyMedium?.copyWith(fontSize: 15.5, height: 1.75),
         bodySmall: textTheme.bodySmall?.copyWith(fontSize: 12.5),
         titleMedium: textTheme.titleMedium?.copyWith(
           fontSize: 16,

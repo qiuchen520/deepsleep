@@ -1,5 +1,6 @@
-/// 助手消息：搜索来源卡片 + 思考面板 + Markdown 正文 + 操作行（复制 / 重新
-/// 生成 / 继续生成 / 版本切换）+ 记忆引用 + 失败重试。
+/// 助手消息：搜索 / 思考折叠行 + Markdown 正文 + 操作行 + 记忆引用。
+///
+/// 无气泡无背景；最后一条助手消息的操作行常显，其他消息点击 / 长按后出现。
 library;
 
 import 'package:flutter/material.dart';
@@ -15,7 +16,7 @@ import 'search_hits_card.dart';
 import 'streaming_indicator.dart';
 import 'thinking_panel.dart';
 
-class AssistantMessageTile extends StatelessWidget {
+class AssistantMessageTile extends StatefulWidget {
   const AssistantMessageTile({
     super.key,
     required this.message,
@@ -34,98 +35,113 @@ class AssistantMessageTile extends StatelessWidget {
   final bool isStreaming;
 
   @override
+  State<AssistantMessageTile> createState() => _AssistantMessageTileState();
+}
+
+class _AssistantMessageTileState extends State<AssistantMessageTile> {
+  bool _showActions = false;
+
+  void _toggleActions() {
+    if (widget.isLastAssistant || widget.isStreaming) return;
+    setState(() => _showActions = !_showActions);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
+    final message = widget.message;
+    final controller = widget.controller;
+    final streaming = widget.isStreaming;
     final reasoning = message.displayReasoning;
     final content = message.displayContent;
     final hasReasoning = reasoning.trim().isNotEmpty;
     final hasContent = content.trim().isNotEmpty;
     final failed = message.isFailed;
-    final canContinue = isLastAssistant &&
+    final isLast = widget.isLastAssistant;
+    final showActions = (isLast || _showActions) && !streaming;
+    final searching =
+        streaming && controller.searchOn && message.searchHits.isEmpty;
+    final canContinue = isLast &&
         (message.status == MessageStatus.stopped ||
             message.status == MessageStatus.done);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (message.searchHits.isNotEmpty)
-          SearchHitsCard(hits: message.searchHits),
-        if (hasReasoning)
-          ThinkingPanel(
-            reasoning: reasoning,
-            streaming: isStreaming && message.isStreaming,
-            startedAt: message.createdAt,
-            finishedAt: message.finishedAt,
-          ),
-        if (hasContent) MarkdownView(data: content),
-        if (isStreaming && hasContent)
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: StreamingCursor(),
-          ),
-        if (isStreaming && !hasContent && !hasReasoning)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: TypingDots(size: 7),
-          ),
-        if (failed)
-          ErrorCard(
-            message: message.error ?? controller.lastError ?? '生成失败，请重试',
-            onRetry: controller.regenerateLast,
-          ),
-        if (!isStreaming)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Wrap(
-              spacing: 2,
-              runSpacing: 2,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: <Widget>[
-                _IconAction(
-                  icon: Icons.copy_rounded,
-                  tooltip: '复制',
-                  onTap: hasContent ? () => _copy(context) : null,
-                ),
-                if (isLastAssistant && !failed)
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _toggleActions,
+      onLongPress: _toggleActions,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (message.searchHits.isNotEmpty || searching)
+            SearchHitsCard(hits: message.searchHits, searching: searching),
+          if (hasReasoning)
+            ThinkingPanel(
+              reasoning: reasoning,
+              streaming: streaming && message.isStreaming,
+              startedAt: message.createdAt,
+              finishedAt: message.finishedAt,
+            ),
+          if (hasContent) MarkdownView(data: content),
+          if (streaming && hasContent)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: StreamingCursor(),
+            ),
+          if (streaming && !hasContent && !hasReasoning)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: TypingDots(size: 6),
+            ),
+          if (failed)
+            ErrorCard(
+              message: message.error ?? controller.lastError ?? '生成失败，请重试',
+              onRetry: controller.regenerateLast,
+            ),
+          if (!streaming && message.citedMemoryIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: MemoryCitationChip(
+                citedMemoryIds: message.citedMemoryIds,
+                controller: controller,
+              ),
+            ),
+          if (showActions)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
                   _IconAction(
-                    icon: Icons.refresh_rounded,
-                    tooltip: '重新生成',
-                    onTap: () => controller.regenerateLast(),
+                    icon: Icons.copy_rounded,
+                    tooltip: '复制',
+                    onTap: hasContent ? () => _copy(context) : null,
                   ),
-                if (canContinue)
-                  _IconAction(
-                    icon: Icons.play_arrow_rounded,
-                    tooltip: '继续生成',
-                    onTap: () => controller.continueGeneration(),
-                  ),
-                if (message.hasVersions)
-                  _VersionSwitcher(message: message, controller: controller),
-              ],
+                  if (isLast && !failed)
+                    _IconAction(
+                      icon: Icons.refresh_rounded,
+                      tooltip: '重新生成',
+                      onTap: () => controller.regenerateLast(),
+                    ),
+                  if (canContinue)
+                    _IconAction(
+                      icon: Icons.play_arrow_rounded,
+                      tooltip: '继续生成',
+                      onTap: () => controller.continueGeneration(),
+                    ),
+                  if (message.hasVersions)
+                    _VersionSwitcher(message: message, controller: controller),
+                ],
+              ),
             ),
-          ),
-        if (!isStreaming && message.citedMemoryIds.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: MemoryCitationChip(
-              citedMemoryIds: message.citedMemoryIds,
-              controller: controller,
-            ),
-          ),
-        if (message.compressed && !isStreaming)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              '此条较早的消息已被压缩为上下文摘要',
-              style: TextStyle(fontSize: 10.5, color: colors.textTertiary),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
   Future<void> _copy(BuildContext context) async {
-    final text = message.displayContent;
+    final text = widget.message.displayContent;
     if (text.trim().isEmpty) return;
     await Clipboard.setData(ClipboardData(text: text));
     if (!context.mounted) return;
@@ -158,10 +174,10 @@ class _VersionSwitcher extends StatelessWidget {
               : null,
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             '${current + 1}/${message.versionCount}',
-            style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+            style: TextStyle(fontSize: 12, color: colors.textTertiary),
           ),
         ),
         _IconAction(
@@ -200,7 +216,7 @@ class _IconAction extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.xs),
         child: Padding(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(3),
           child: Icon(icon, size: 16, color: color),
         ),
       ),

@@ -3,6 +3,8 @@
 /// 主题色适配（标题 / 引用 / 表格 / 行内代码）、把围栏代码块交给 [CodeBlock]
 /// 与 [ChartBlock] 渲染、链接用 url_launcher 打开。样式表按 [AppColors] 实例
 /// 缓存，避免流式刷新时重复解析整段历史消息。
+///
+/// [compact] 用于思考过程等次要文本：更小字号、更淡颜色、更紧的间距。
 library;
 
 import 'package:flutter/material.dart';
@@ -45,88 +47,95 @@ Future<void> openExternalUrl(BuildContext context, String url) async {
 
 AppColors? _cachedColors;
 MarkdownStyleSheet? _cachedSheet;
+MarkdownStyleSheet? _cachedCompactSheet;
 
-MarkdownStyleSheet _styleSheetFor(AppColors colors) {
-  if (identical(colors, _cachedColors) && _cachedSheet != null) {
-    return _cachedSheet!;
-  }
+MarkdownStyleSheet _buildSheet(AppColors colors, bool compact) {
   final base = MarkdownStyleSheet.fromTheme(
     ThemeData.light(useMaterial3: true),
   );
-  final sheet = base.copyWith(
-    p: TextStyle(fontSize: 15, height: 1.7, color: colors.textPrimary),
+  final bodyColor = compact ? colors.textSecondary : colors.textPrimary;
+  final bodySize = compact ? 13.0 : 15.5;
+  final bodyHeight = compact ? 1.7 : 1.75;
+  final headingColor = compact ? colors.textSecondary : colors.textPrimary;
+  final codeSize = compact ? 12.0 : 13.0;
+  return base.copyWith(
+    p: TextStyle(fontSize: bodySize, height: bodyHeight, color: bodyColor),
     a: TextStyle(color: colors.brandText, decoration: TextDecoration.none),
     code: TextStyle(
       fontFamily: 'monospace',
-      fontSize: 13,
-      color: colors.textPrimary,
+      fontSize: codeSize,
+      color: bodyColor,
       backgroundColor: colors.codeBg,
     ),
     h1: TextStyle(
-      fontSize: 22,
-      height: 1.5,
+      fontSize: compact ? 15 : 20,
+      height: 1.4,
       fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
+      color: headingColor,
     ),
+    h1Padding: const EdgeInsets.only(top: 8, bottom: 2),
     h2: TextStyle(
-      fontSize: 19,
-      height: 1.5,
+      fontSize: compact ? 14.5 : 18,
+      height: 1.4,
       fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
+      color: headingColor,
     ),
+    h2Padding: const EdgeInsets.only(top: 8, bottom: 2),
     h3: TextStyle(
-      fontSize: 17,
-      height: 1.5,
+      fontSize: compact ? 14 : 16.5,
+      height: 1.4,
       fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
+      color: headingColor,
     ),
+    h3Padding: const EdgeInsets.only(top: 6, bottom: 2),
     h4: TextStyle(
-      fontSize: 15.5,
-      height: 1.5,
+      fontSize: compact ? 13.5 : 15.5,
+      height: 1.45,
       fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
+      color: headingColor,
     ),
+    h4Padding: const EdgeInsets.only(top: 6, bottom: 2),
     h5: TextStyle(
-      fontSize: 15,
-      height: 1.5,
+      fontSize: compact ? 13 : 15,
+      height: 1.45,
       fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
+      color: headingColor,
     ),
+    h5Padding: const EdgeInsets.only(top: 4, bottom: 2),
     h6: TextStyle(
-      fontSize: 14.5,
-      height: 1.5,
+      fontSize: compact ? 13 : 14.5,
+      height: 1.45,
       fontWeight: FontWeight.w600,
-      color: colors.textSecondary,
+      color: compact ? colors.textTertiary : colors.textSecondary,
     ),
+    h6Padding: const EdgeInsets.only(top: 4, bottom: 2),
     em: const TextStyle(fontStyle: FontStyle.italic),
     strong: const TextStyle(fontWeight: FontWeight.w600),
     del: TextStyle(
-      color: colors.textSecondary,
+      color: colors.textTertiary,
       decoration: TextDecoration.lineThrough,
     ),
     blockquote: TextStyle(
-      fontSize: 14.5,
-      height: 1.6,
-      color: colors.textSecondary,
+      fontSize: compact ? 12.5 : 14.5,
+      height: 1.65,
+      color: compact ? colors.textTertiary : colors.textSecondary,
     ),
-    blockquotePadding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+    blockquotePadding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
     blockquoteDecoration: BoxDecoration(
-      color: colors.bgHover,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
       border: Border(
-        left: BorderSide(color: colors.borderStrong, width: 3),
+        left: BorderSide(color: colors.border, width: 2),
       ),
     ),
-    blockSpacing: 10,
-    listIndent: 20,
-    listBullet: TextStyle(color: colors.textSecondary),
+    blockSpacing: compact ? 6 : 8,
+    listIndent: compact ? 16 : 20,
+    listBullet: TextStyle(color: colors.textTertiary),
     tableHead: TextStyle(
-      fontSize: 13,
+      fontSize: compact ? 12 : 13,
       fontWeight: FontWeight.w600,
       color: colors.textPrimary,
     ),
     tableBody: TextStyle(
-      fontSize: 13,
+      fontSize: compact ? 12 : 13,
       height: 1.5,
       color: colors.textPrimary,
     ),
@@ -134,9 +143,9 @@ MarkdownStyleSheet _styleSheetFor(AppColors colors) {
     tableColumnWidth: const IntrinsicColumnWidth(),
     tableCellsPadding: const EdgeInsets.symmetric(
       horizontal: 10,
-      vertical: 6,
+      vertical: 5,
     ),
-    tablePadding: const EdgeInsets.symmetric(vertical: 6),
+    tablePadding: const EdgeInsets.symmetric(vertical: 4),
     codeblockDecoration: const BoxDecoration(),
     codeblockPadding: EdgeInsets.zero,
     horizontalRuleDecoration: BoxDecoration(
@@ -144,13 +153,31 @@ MarkdownStyleSheet _styleSheetFor(AppColors colors) {
     ),
     checkbox: TextStyle(color: colors.textSecondary),
   );
-  _cachedColors = colors;
-  _cachedSheet = sheet;
+}
+
+MarkdownStyleSheet _styleSheetFor(AppColors colors, bool compact) {
+  if (!identical(colors, _cachedColors)) {
+    _cachedColors = colors;
+    _cachedSheet = null;
+    _cachedCompactSheet = null;
+  }
+  if (compact) {
+    var sheet = _cachedCompactSheet;
+    if (sheet == null) {
+      sheet = _buildSheet(colors, true);
+      _cachedCompactSheet = sheet;
+    }
+    return sheet;
+  }
+  var sheet = _cachedSheet;
+  if (sheet == null) {
+    sheet = _buildSheet(colors, false);
+    _cachedSheet = sheet;
+  }
   return sheet;
 }
 
 class _PreBlockBuilder extends MarkdownElementBuilder {
-
   @override
   Widget? visitElementAfterWithContext(
     BuildContext context,
@@ -193,6 +220,7 @@ class MarkdownView extends StatelessWidget {
     required this.data,
     this.onTapLink,
     this.selectable = true,
+    this.compact = false,
     this.padding = EdgeInsets.zero,
   });
 
@@ -203,6 +231,9 @@ class MarkdownView extends StatelessWidget {
 
   /// 是否允许长按选择文本。
   final bool selectable;
+
+  /// 紧凑模式：小字号 + 淡色，用于思考过程等次要内容。
+  final bool compact;
 
   final EdgeInsets padding;
 
@@ -217,7 +248,7 @@ class MarkdownView extends StatelessWidget {
         selectable: selectable,
         softLineBreak: true,
         fitContent: true,
-        styleSheet: _styleSheetFor(colors),
+        styleSheet: _styleSheetFor(colors, compact),
         builders: <String, MarkdownElementBuilder>{
           'pre': _PreBlockBuilder(),
         },

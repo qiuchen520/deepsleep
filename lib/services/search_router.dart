@@ -23,6 +23,9 @@ class SearchRouter implements WebSearchService {
 
   WebSearchService? _serviceFor(String backend) {
     switch (backend) {
+      case 'deepseek':
+        // DeepSeek 内置搜索由 ChatApi 的服务端工具完成，不需要外部搜索 Key。
+        return null;
       case 'tavily':
         final key = _tavilyKeyProvider();
         if (key.trim().isEmpty) return null;
@@ -37,10 +40,12 @@ class SearchRouter implements WebSearchService {
   }
 
   @override
-  bool get isConfigured => _serviceFor(_backendProvider()) != null;
+  bool get isConfigured => _backendProvider() == 'deepseek' ||
+      _serviceFor(_backendProvider()) != null;
 
   @override
   Future<List<SearchHit>> search(String query, {int maxResults = 5}) async {
+    if (_backendProvider() == 'deepseek') return const <SearchHit>[];
     final service = _serviceFor(_backendProvider());
     if (service == null) {
       throw const ApiException(

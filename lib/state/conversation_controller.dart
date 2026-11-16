@@ -440,12 +440,20 @@ class ConversationController extends ChangeNotifier {
     _updateStreamingMessage();
     _notify();
 
+    final serverSearch = _searchOn &&
+        settings.searchBackend == SearchBackend.deepseek;
     _sub = _pipeline
         .stream(
           prepared,
-          model: _deepThinking ? settings.reasonerModel : settings.chatModel,
+          model: serverSearch
+              ? 'deepseek-flash'
+              : (_deepThinking
+                  ? settings.reasonerModel
+                  : settings.chatModel),
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
+          useServerSearch: serverSearch,
+          deepThinking: _deepThinking,
         )
         .listen(
       _onStreamEvent,

@@ -57,8 +57,10 @@ class ChatPipeline {
     bool? searchEnabledOverride,
     bool appendUserTurn = true,
   }) async {
-    final useSearch =
-        searchEnabledOverride ?? settings.searchEnabled;
+    final deepseekSearch =
+        settings.searchBackend == SearchBackend.deepseek;
+    final useSearch = !deepseekSearch &&
+        (searchEnabledOverride ?? settings.searchEnabled);
     final userId = profile.id;
 
     // 1) 记忆召回（失败不影响主流程）
@@ -146,6 +148,8 @@ class ChatPipeline {
     required String model,
     double temperature = 1.0,
     int maxTokens = 4096,
+    bool useServerSearch = false,
+    bool deepThinking = false,
   }) {
     return api.streamChat(
       ChatRequest(
@@ -154,6 +158,8 @@ class ChatPipeline {
         temperature: temperature,
         maxTokens: maxTokens,
         searchHits: turn.searchHits,
+        useServerSearch: useServerSearch,
+        deepThinking: deepThinking,
       ),
     );
   }

@@ -87,6 +87,7 @@ enum MemoryBackend {
 /// 联网搜索服务商。
 enum SearchBackend {
   off,
+  deepseek,
   tavily,
   serper;
 
@@ -104,7 +105,7 @@ class AppSettings {
     this.chatModel = AppInfo.defaultChatModel,
     this.reasonerModel = AppInfo.defaultReasonerModel,
     this.deepThinking = false,
-    this.searchBackend = SearchBackend.off,
+    this.searchBackend = SearchBackend.deepseek,
     this.searchMaxResults = 5,
     this.memoryEnabled = true,
     this.autoExtractMemory = true,

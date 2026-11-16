@@ -103,6 +103,8 @@ class ChatRequest {
     this.temperature = 1.0,
     this.maxTokens = 4096,
     this.searchHits = const <SearchHit>[],
+    this.useServerSearch = false,
+    this.deepThinking = false,
   });
 
   final String model;
@@ -110,6 +112,12 @@ class ChatRequest {
   final double temperature;
   final int maxTokens;
   final List<SearchHit> searchHits;
+
+  /// 是否让 DeepSeek 服务端自己联网（Anthropic 兼容接口的 web_search 工具）。
+  final bool useServerSearch;
+
+  /// 服务端深度思考开关（Anthropic 兼容接口的 thinking）。
+  final bool deepThinking;
 }
 
 /// DeepSeek（OpenAI 兼容）API 抽象。

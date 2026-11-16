@@ -1,5 +1,6 @@
-/// 聊天主界面：顶栏、未配置提示、消息列表 / 欢迎页、输入区与自动滚动。
+/// 聊天主界面：顶栏、消息列表 / 欢迎页、输入区与自动滚动。
 ///
+/// 视觉基调：极简、安静、留白多（参考 DeepSeek 官方 App/Web）。
 /// 所有聊天行为都委托给 [ConversationController]；本文件只负责布局与交互。
 library;
 
@@ -14,7 +15,6 @@ import '../../state/settings_controller.dart';
 import 'widgets/composer.dart';
 import 'widgets/context_token_bar.dart';
 import 'widgets/message_list.dart';
-import 'widgets/streaming_indicator.dart';
 import 'widgets/welcome_view.dart';
 
 class ChatView extends StatefulWidget {
@@ -194,12 +194,7 @@ class _ChatViewState extends State<ChatView> {
     final colors = context.colors;
     final controller = _conversations;
     final messages = controller.messages;
-    final activeConversation = controller.activeConversation;
     final hasApiKey = _settings.hasApiKey;
-    final showTokenBar = _settings.settings.showTokenUsage &&
-        (controller.contextTokens > 0 ||
-            controller.compressing ||
-            (activeConversation?.summary.trim().isNotEmpty ?? false));
 
     return Container(
       color: colors.bgBase,
@@ -210,18 +205,13 @@ class _ChatViewState extends State<ChatView> {
             showSidebarButton: widget.showSidebarButton,
             onOpenSidebar: widget.onOpenSidebar,
             onOpenSettings: widget.onOpenSettings,
-            onOpenMemory: widget.onOpenMemory,
           ),
-          if (!hasApiKey) _ApiKeyBanner(onTap: widget.onOpenSettings),
+          if (!hasApiKey) _ApiKeyHint(onTap: widget.onOpenSettings),
           Expanded(
             child: controller.loading
                 ? const Center(child: CircularProgressIndicator())
                 : messages.isEmpty
-                    ? WelcomeView(
-                        onPickSuggestion: _fillInput,
-                        hasApiKey: hasApiKey,
-                        onOpenSettings: widget.onOpenSettings,
-                      )
+                    ? WelcomeView(onPickSuggestion: _fillInput)
                     : Stack(
                         children: <Widget>[
                           MessageList(
@@ -232,7 +222,7 @@ class _ChatViewState extends State<ChatView> {
                             Positioned(
                               left: 0,
                               right: 0,
-                              bottom: 8,
+                              bottom: 10,
                               child: Center(
                                 child: _BackToBottomButton(
                                   onTap: () {
@@ -245,15 +235,7 @@ class _ChatViewState extends State<ChatView> {
                         ],
                       ),
           ),
-          if (controller.streaming && messages.isNotEmpty)
-            StreamingIndicatorBar(onStop: controller.stop),
-          if (showTokenBar)
-            ContextTokenBar(
-              tokens: controller.contextTokens,
-              compressing: controller.compressing,
-              hasSummary:
-                  activeConversation?.summary.trim().isNotEmpty ?? false,
-            ),
+          if (controller.compressing) const ContextTokenBar(),
           Composer(
             controller: controller,
             settings: _settings,
@@ -273,63 +255,62 @@ class _ChatHeader extends StatelessWidget {
     required this.showSidebarButton,
     required this.onOpenSidebar,
     required this.onOpenSettings,
-    required this.onOpenMemory,
   });
 
   final ConversationController controller;
   final bool showSidebarButton;
   final VoidCallback? onOpenSidebar;
   final VoidCallback onOpenSettings;
-  final VoidCallback onOpenMemory;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final title = controller.activeConversation?.title ?? AppInfo.appName;
-    final memoryCount = controller.lastMemory.items.length;
     final sidebarAction = onOpenSidebar;
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: colors.bgBase,
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: Row(
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        alignment: Alignment.center,
         children: <Widget>[
-          if (showSidebarButton)
-            _HeaderIconButton(
-              icon: Icons.menu_rounded,
-              tooltip: '会话列表',
-              onTap: sidebarAction,
-            )
-          else
-            const SizedBox(width: 8),
-          const SizedBox(width: 2),
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 96),
             child: Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15.5,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: colors.textPrimary,
               ),
             ),
           ),
-          _MemoryButton(count: memoryCount, onTap: onOpenMemory),
-          _HeaderIconButton(
-            icon: Icons.add_comment_outlined,
-            tooltip: '新建对话',
-            onTap: () {
-              controller.createConversation();
-            },
-          ),
-          _HeaderIconButton(
-            icon: Icons.settings_outlined,
-            tooltip: '设置',
-            onTap: onOpenSettings,
+          Row(
+            children: <Widget>[
+              if (showSidebarButton)
+                _HeaderIconButton(
+                  icon: Icons.menu_rounded,
+                  tooltip: '会话列表',
+                  onTap: sidebarAction,
+                )
+              else
+                const SizedBox(width: 44),
+              const Spacer(),
+              _HeaderIconButton(
+                icon: Icons.add_comment_outlined,
+                tooltip: '新建对话',
+                onTap: () {
+                  controller.createConversation();
+                },
+              ),
+              _HeaderIconButton(
+                icon: Icons.settings_outlined,
+                tooltip: '设置',
+                onTap: onOpenSettings,
+              ),
+              const SizedBox(width: 4),
+            ],
           ),
         ],
       ),
@@ -362,82 +343,31 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-class _MemoryButton extends StatelessWidget {
-  const _MemoryButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Tooltip(
-      message: '记忆中心',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Badge(
-            isLabelVisible: count > 0,
-            backgroundColor: colors.brand,
-            textColor: Colors.white,
-            label: Text('$count'),
-            child: Icon(
-              Icons.psychology_alt,
-              size: 21,
-              color: colors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ApiKeyBanner extends StatelessWidget {
-  const _ApiKeyBanner({required this.onTap});
+class _ApiKeyHint extends StatelessWidget {
+  const _ApiKeyHint({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: colors.brandSoft,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: colors.brand.withValues(alpha: 0.3),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              '未配置 DeepSeek API Key',
+              style: TextStyle(fontSize: 12, color: colors.textTertiary),
             ),
-          ),
-          child: Row(
-            children: <Widget>[
-              Icon(
-                Icons.key_off_outlined,
-                size: 16,
-                color: colors.brandText,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '尚未配置 DeepSeek API Key，点此前往设置',
-                  style: TextStyle(fontSize: 12.5, color: colors.brandText),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: colors.brandText,
-              ),
-            ],
-          ),
+            const SizedBox(width: 6),
+            Text(
+              '前往设置',
+              style: TextStyle(fontSize: 12, color: colors.brandText),
+            ),
+          ],
         ),
       ),
     );
@@ -454,27 +384,19 @@ class _BackToBottomButton extends StatelessWidget {
     final colors = context.colors;
     return Material(
       color: colors.bgElevated,
-      elevation: 2,
-      shape: StadiumBorder(side: BorderSide(color: colors.border)),
+      elevation: 1,
+      shadowColor: colors.shadow,
+      shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
-        customBorder: const StadiumBorder(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                Icons.arrow_downward_rounded,
-                size: 14,
-                color: colors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '回到底部',
-                style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
-              ),
-            ],
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 32,
+          height: 32,
+          child: Icon(
+            Icons.arrow_downward_rounded,
+            size: 16,
+            color: colors.textSecondary,
           ),
         ),
       ),

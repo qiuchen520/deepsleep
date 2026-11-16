@@ -1,4 +1,4 @@
-/// 用户消息：右侧浅蓝气泡 + 附件 chip，点击 / 长按可复制或编辑重发。
+/// 用户消息：右对齐浅色气泡 + 附件，点击 / 长按可复制或编辑重发。
 library;
 
 import 'package:flutter/material.dart';
@@ -24,58 +24,60 @@ class UserMessageTile extends StatelessWidget {
     final colors = context.colors;
     final attachments = message.attachments;
     final content = message.displayContent;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
-            if (attachments.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: <Widget>[
-                    for (final attachment in attachments)
-                      AttachmentChip(attachment: attachment),
-                  ],
-                ),
-              ),
-            if (content.trim().isNotEmpty)
-              GestureDetector(
-                onTap: () => _showMenu(context),
-                onLongPress: () => _showMenu(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.userBubble,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxBubbleWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth * 0.78
+            : 520.0;
+        return Align(
+          alignment: Alignment.centerRight,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                if (attachments.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: <Widget>[
+                        for (final attachment in attachments)
+                          AttachmentChip(attachment: attachment),
+                      ],
                     ),
                   ),
-                  child: Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.6,
-                      color: colors.textPrimary,
+                if (content.trim().isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _showMenu(context),
+                    onLongPress: () => _showMenu(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.userBubble,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        content,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          height: 1.7,
+                          color: colors.textPrimary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-          ],
-        ),
-      ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -90,17 +92,7 @@ class UserMessageTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-                child: Text(
-                  '消息操作',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: colors.textTertiary,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 8),
               ListTile(
                 leading: Icon(
                   Icons.copy_rounded,

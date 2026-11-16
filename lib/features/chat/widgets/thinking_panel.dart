@@ -1,4 +1,5 @@
-/// 深度思考折叠面板：流式时显示「正在深度思考…」，结束后显示用时。
+/// 深度思考折叠行：流式时「正在深度思考…」，结束后显示用时；
+/// 展开后是左侧 2px 淡边框的灰字，不做背景卡片。
 library;
 
 import 'package:flutter/material.dart';
@@ -45,34 +46,21 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
       children: <Widget>[
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: widget.streaming
-                      ? CircularProgressIndicator(
-                          strokeWidth: 1.6,
-                          color: colors.brand,
-                        )
-                      : Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 14,
-                          color: colors.success,
-                        ),
+                Icon(
+                  Icons.lightbulb_outline_rounded,
+                  size: 14,
+                  color: colors.textTertiary,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   _title,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: colors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13, color: colors.textSecondary),
                 ),
                 Icon(
                   _expanded
@@ -87,15 +75,18 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
         ),
         if (_expanded)
           Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(top: 4, bottom: 10),
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(left: 10),
             decoration: BoxDecoration(
-              color: colors.bgHover,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: colors.border),
+              border: Border(
+                left: BorderSide(color: colors.border, width: 2),
+              ),
             ),
-            child: MarkdownView(data: widget.reasoning),
+            child: MarkdownView(
+              data: widget.reasoning,
+              selectable: false,
+              compact: true,
+            ),
           ),
       ],
     );
