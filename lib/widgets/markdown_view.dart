@@ -50,9 +50,26 @@ MarkdownStyleSheet? _cachedSheet;
 MarkdownStyleSheet? _cachedCompactSheet;
 
 MarkdownStyleSheet _buildSheet(AppColors colors, bool compact) {
-  final base = MarkdownStyleSheet.fromTheme(
-    ThemeData.light(useMaterial3: true),
+  // fromTheme 会断言 textTheme.bodyMedium.fontSize != null；
+  // 新版 Flutter 的默认 Typography 在该字段上可能为 null，这里显式给全。
+  final baseTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    dividerColor: colors.border,
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(
+        fontSize: compact ? 13 : 15.5,
+        height: 1.75,
+        color: colors.textPrimary,
+      ),
+      bodySmall: TextStyle(fontSize: 12.5, color: colors.textSecondary),
+      headlineSmall: TextStyle(fontSize: 20, color: colors.textPrimary),
+      titleLarge: TextStyle(fontSize: 18, color: colors.textPrimary),
+      titleMedium: TextStyle(fontSize: 16.5, color: colors.textPrimary),
+      titleSmall: TextStyle(fontSize: 15.5, color: colors.textPrimary),
+    ),
   );
+  final base = MarkdownStyleSheet.fromTheme(baseTheme);
   final bodyColor = compact ? colors.textSecondary : colors.textPrimary;
   final bodySize = compact ? 13.0 : 15.5;
   final bodyHeight = compact ? 1.7 : 1.75;
