@@ -488,6 +488,14 @@ class DeepSeekAnthropicClient implements ChatApi {
   }
 
   @override
+  Future<List<String>> listModels() async {
+    throw const ApiException(
+      ApiErrorKind.invalidRequest,
+      'Anthropic 兼容客户端不支持模型列表',
+    );
+  }
+
+  @override
   Future<void> validateApiKey() async {
     throw const ApiException(
       ApiErrorKind.invalidRequest,

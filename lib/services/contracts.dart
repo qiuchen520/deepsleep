@@ -148,6 +148,9 @@ abstract class ChatApi {
   /// 校验 Key 是否可用（GET /models）。
   Future<void> validateApiKey();
 
+  /// 拉取账号可用的模型列表（GET /models），用于「自动检测模型」。
+  Future<List<String>> listModels();
+
   Future<String> generateTitle({
     required String firstUserMessage,
     String? firstAssistantMessage,

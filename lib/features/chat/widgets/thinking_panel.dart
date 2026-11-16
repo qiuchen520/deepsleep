@@ -101,19 +101,26 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
                     ),
                   ),
                   const SizedBox(width: 2),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_down_rounded
-                        : Icons.keyboard_arrow_right_rounded,
-                    size: 18,
-                    color: colors.textTertiary,
+                  AnimatedRotation(
+                    turns: _expanded ? 0 : -0.25,
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: colors.textTertiary,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          if (_expanded)
-            Padding(
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topLeft,
+            child: !_expanded
+                ? const SizedBox(width: double.infinity)
+                : Padding(
               padding: const EdgeInsets.only(left: 23, bottom: 4),
               child: Container(
                 padding: const EdgeInsets.only(left: 12),
@@ -157,6 +164,7 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
                 ),
               ),
             ),
+          ),
         ],
       ),
     );

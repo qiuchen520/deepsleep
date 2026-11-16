@@ -62,6 +62,49 @@ class MessageList extends StatelessWidget {
   }
 }
 
+/// 新消息淡入 + 轻微上移，避免「生硬」的瞬间出现。
+class _MessageEntrance extends StatefulWidget {
+  const _MessageEntrance({required this.messageId, required this.child});
+
+  final String messageId;
+  final Widget child;
+
+  @override
+  State<_MessageEntrance> createState() => _MessageEntranceState();
+}
+
+class _MessageEntranceState extends State<_MessageEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+  )..forward();
+
+  late final Animation<double> _opacity = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  );
+
+  late final Animation<Offset> _offset = Tween<Offset>(
+    begin: const Offset(0, 0.02),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(position: _offset, child: widget.child),
+    );
+  }
+}
+
 class _MessageBody extends StatelessWidget {
   const _MessageBody({
     required this.message,

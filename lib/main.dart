@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'core/theme/app_theme.dart';
@@ -9,6 +10,14 @@ import 'state/app_services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 沉浸式：隐藏系统状态栏与导航栏（从屏幕边缘上滑可临时唤出）。
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ),
+  );
   // 发布版也把构建异常显示出来，避免只看到灰块无法排查。
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return _VisibleErrorWidget(

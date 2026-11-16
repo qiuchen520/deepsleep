@@ -33,6 +33,7 @@ class SettingsController extends ChangeNotifier {
   String _searchApiKey = '';
   String _mem0ApiKey = '';
   List<UserProfile> _profiles = const <UserProfile>[];
+  List<String> _availableModels = const <String>[];
   bool _initialized = false;
 
   AppSettings get settings => _settings;
@@ -42,6 +43,19 @@ class SettingsController extends ChangeNotifier {
   bool get hasApiKey => _apiKey.trim().isNotEmpty;
   bool get initialized => _initialized;
   List<UserProfile> get profiles => List<UserProfile>.unmodifiable(_profiles);
+
+  /// 通过 /models 自动检测到的模型（本地缓存）。
+  List<String> get availableModels =>
+      List<String>.unmodifiable(_availableModels);
+
+  /// 可用模型：优先用检测结果，没有时退回默认两个。
+  List<String> get candidateModels {
+    if (_availableModels.isNotEmpty) return _availableModels;
+    return <String>[_settings.chatModel, _settings.reasonerModel]
+        .where((e) => e.trim().isNotEmpty)
+        .toSet()
+        .toList();
+  }
 
   UserProfile get activeProfile {
     if (_profiles.isEmpty) {
@@ -64,6 +78,8 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> load() async {
     _settings = _readSettings();
+    _availableModels =
+        _prefs.getStringList('deepsleep.models') ?? const <String>[];
     await _loadProfiles();
     _apiKey = await _readSecret(StorageKeys.apiKey);
     _searchApiKey = await _readSecret(StorageKeys.searchApiKey);
@@ -109,6 +125,17 @@ class SettingsController extends ChangeNotifier {
   Future<void> setSearchApiKey(String key) async {
     _searchApiKey = key.trim();
     await _writeSecret(StorageKeys.searchApiKey, _searchApiKey);
+    notifyListeners();
+  }
+
+  Future<void> setAvailableModels(List<String> models) async {
+    _availableModels = models
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    await _prefs.setStringList('deepsleep.models', _availableModels);
     notifyListeners();
   }
 

@@ -11,9 +11,11 @@ import 'package:flutter/material.dart';
 import '../../../core/constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/profile_models.dart';
+import '../../../state/app_services.dart';
 import '../../../state/conversation_controller.dart';
 import '../../../state/settings_controller.dart';
 import 'attachment_preview.dart';
+import 'model_picker_sheet.dart';
 
 class Composer extends StatelessWidget {
   const Composer({
@@ -23,6 +25,7 @@ class Composer extends StatelessWidget {
     required this.textController,
     required this.focusNode,
     required this.onOpenSettings,
+    required this.services,
   });
 
   final ConversationController controller;
@@ -30,6 +33,7 @@ class Composer extends StatelessWidget {
   final TextEditingController textController;
   final FocusNode focusNode;
   final VoidCallback onOpenSettings;
+  final AppServices services;
 
   bool get _searchConfigured {
     final appSettings = settings.settings;
@@ -117,6 +121,13 @@ class Composer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: focusNode,
+      builder: (context, _) => _buildCard(context),
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     final colors = context.colors;
     final appSettings = settings.settings;
     final pending = controller.pendingAttachments;
@@ -131,11 +142,17 @@ class Composer extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
                 decoration: BoxDecoration(
                   color: colors.bgInput,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: borderColor),
+                  border: Border.all(
+                    color: focusNode.hasFocus
+                        ? colors.brand.withValues(alpha: 0.45)
+                        : borderColor,
+                  ),
                   boxShadow: _cardShadow(context),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -226,6 +243,14 @@ class Composer extends StatelessWidget {
                                     width: 34,
                                     height: 34,
                                   ),
+                                ),
+                                _ModelChip(
+                                  label: shortModelName(
+                                    appSettings.effectiveModel,
+                                    appSettings,
+                                  ),
+                                  onTap: () =>
+                                      showModelPicker(context, services),
                                 ),
                                 _Toggle(
                                   icon: Icons.lightbulb_outline_rounded,
@@ -332,6 +357,50 @@ class _SendButton extends StatelessWidget {
           padding: EdgeInsets.zero,
           shape: const CircleBorder(),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+}
+
+class _ModelChip extends StatelessWidget {
+  const _ModelChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colors.borderStrong),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.tune_rounded,
+              size: 14,
+              color: colors.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                height: 20 / 13,
+                fontWeight: FontWeight.w500,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -64,6 +64,7 @@ class _ChatViewState extends State<ChatView> {
       if (!mounted) return;
       _handleChatChanged();
       _scrollToBottom(animate: false);
+      _detectModels();
     });
   }
 
@@ -90,6 +91,18 @@ class _ChatViewState extends State<ChatView> {
     _inputController.dispose();
     _inputFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _detectModels() async {
+    if (!_settings.hasApiKey) return;
+    try {
+      final models = await widget.services.api.listModels();
+      if (models.isNotEmpty) {
+        await _settings.setAvailableModels(models);
+      }
+    } catch (_) {
+      // 自动检测失败不打扰用户，打开选择面板时可手动重试。
+    }
   }
 
   void _handleSettingsChanged() {
@@ -233,6 +246,7 @@ class _ChatViewState extends State<ChatView> {
           Composer(
             controller: controller,
             settings: _settings,
+            services: widget.services,
             textController: _inputController,
             focusNode: _inputFocus,
             onOpenSettings: widget.onOpenSettings,

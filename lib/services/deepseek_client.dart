@@ -189,6 +189,46 @@ class DeepSeekClient implements ChatApi, LlmClient {
   }
 
   @override
+  Future<List<String>> listModels() async {
+    final apiKey = _requireApiKey();
+    final uri = _endpoint('/models');
+    final client = _httpClient ?? http.Client();
+    final ownsClient = _httpClient == null;
+    try {
+      final response = await client.get(
+        uri,
+        headers: <String, String>{'Authorization': 'Bearer $apiKey'},
+      ).timeout(_defaultTimeout);
+      if (response.statusCode != 200) {
+        throw _httpError(
+          response.statusCode,
+          utf8.decode(response.bodyBytes, allowMalformed: true),
+        );
+      }
+      final decoded = jsonDecode(
+        utf8.decode(response.bodyBytes, allowMalformed: true),
+      );
+      final data = decoded is Map ? decoded['data'] : null;
+      final models = <String>[];
+      if (data is List) {
+        for (final item in data) {
+          if (item is Map) {
+            final id = '${item['id'] ?? ''}'.trim();
+            if (id.isNotEmpty) models.add(id);
+          }
+        }
+      }
+      models.sort();
+      return models;
+    } catch (error) {
+      if (error is ApiException) rethrow;
+      throw _mapError(error);
+    } finally {
+      if (ownsClient) client.close();
+    }
+  }
+
+  @override
   Future<void> validateApiKey() async {
     _ensureUsable();
     final apiKey = _requireApiKey();

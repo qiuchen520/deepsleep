@@ -44,6 +44,9 @@ class ChatApiRouter implements ChatApi {
   Future<void> validateApiKey() => _standard.validateApiKey();
 
   @override
+  Future<List<String>> listModels() => _standard.listModels();
+
+  @override
   Future<String> generateTitle({
     required String firstUserMessage,
     String? firstAssistantMessage,
