@@ -107,33 +107,6 @@ Future<void> showModelPicker(BuildContext context, AppServices services) async {
                         if (context.mounted) Navigator.pop(context);
                       },
                     ),
-                  const Divider(height: 24),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(
-                      '深度思考',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '使用 ${settings.settings.reasonerModel} 思考后再回答',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.textTertiary,
-                      ),
-                    ),
-                    value: settings.settings.deepThinking,
-                    activeTrackColor: colors.brand,
-                    onChanged: (value) async {
-                      await settings.update(
-                        settings.settings.copyWith(deepThinking: value),
-                      );
-                      if (context.mounted) setState(() {});
-                    },
-                  ),
                 ],
               ),
             ),

@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_models.dart';
+import '../../../services/voice_service.dart';
 import '../../../state/conversation_controller.dart';
 import '../../../widgets/markdown_view.dart';
 import 'error_card.dart';
@@ -90,6 +91,7 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
                 streaming: streaming && message.isStreaming,
                 startedAt: message.createdAt,
                 finishedAt: message.finishedAt,
+                steps: message.thinkingSteps,
                 queries: message.searchQueries,
                 hits: message.searchHits,
                 visitedPages: message.visitedPages,
@@ -170,9 +172,21 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
                           }),
                         ),
                         _IconAction(
-                          icon: Icons.volume_up_outlined,
+                          icon: VoiceService.instance.isSpeaking
+                              ? Icons.stop_circle_outlined
+                              : Icons.volume_up_outlined,
                           tooltip: '朗读',
-                          onTap: () => _showSnack(context, '朗读功能即将上线'),
+                          onTap: hasContent
+                              ? () async {
+                                  final voice = VoiceService.instance;
+                                  if (voice.isSpeaking) {
+                                    await voice.stopSpeaking();
+                                  } else {
+                                    await voice.speak(message.displayContent);
+                                  }
+                                  setState(() {});
+                                }
+                              : null,
                         ),
                         _IconAction(
                           icon: Icons.ios_share_rounded,

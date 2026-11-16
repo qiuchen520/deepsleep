@@ -81,6 +81,7 @@ class ConversationController extends ChangeNotifier {
   List<SearchHit> _streamHits = <SearchHit>[];
   List<String> _streamQueries = <String>[];
   List<SearchHit> _streamVisitedPages = <SearchHit>[];
+  List<ThinkingStep> _streamSteps = <ThinkingStep>[];
   List<String> _streamMemoryIds = <String>[];
   int? _streamPromptTokens;
   int? _streamCompletionTokens;
@@ -397,6 +398,7 @@ class ConversationController extends ChangeNotifier {
     _streamHits = <SearchHit>[];
     _streamQueries = <String>[];
     _streamVisitedPages = <SearchHit>[];
+    _streamSteps = <ThinkingStep>[];
     _streamMemoryIds = <String>[];
     _streamPromptTokens = null;
     _streamCompletionTokens = null;
@@ -481,11 +483,35 @@ class ConversationController extends ChangeNotifier {
         break;
       case StreamEventType.reasoning:
         _streamReasoning += event.text;
+        if (_streamSteps.isNotEmpty &&
+            _streamSteps.last.kind == ThinkingStepKind.reasoning) {
+          _streamSteps[_streamSteps.length - 1] =
+              _streamSteps.last.copyWith(text: _streamSteps.last.text + event.text);
+        } else {
+          _streamSteps.add(
+            ThinkingStep(
+              kind: ThinkingStepKind.reasoning,
+              text: event.text,
+            ),
+          );
+        }
         _updateStreamingMessage();
         _scheduleNotify();
         break;
       case StreamEventType.searchResults:
         _streamHits = event.searchHits;
+        if (_streamSteps.isNotEmpty &&
+            _streamSteps.last.kind == ThinkingStepKind.search) {
+          _streamSteps[_streamSteps.length - 1] =
+              _streamSteps.last.copyWith(hits: event.searchHits);
+        } else {
+          _streamSteps.add(
+            ThinkingStep(
+              kind: ThinkingStepKind.search,
+              hits: event.searchHits,
+            ),
+          );
+        }
         _updateStreamingMessage();
         _notify();
         break;
@@ -493,6 +519,12 @@ class ConversationController extends ChangeNotifier {
         for (final q in event.queries) {
           if (!_streamQueries.contains(q)) _streamQueries.add(q);
         }
+        _streamSteps.add(
+          ThinkingStep(
+            kind: ThinkingStepKind.search,
+            queries: List<String>.from(event.queries),
+          ),
+        );
         _updateStreamingMessage();
         _notify();
         break;
@@ -502,6 +534,12 @@ class ConversationController extends ChangeNotifier {
             _streamVisitedPages.add(page);
           }
         }
+        _streamSteps.add(
+          ThinkingStep(
+            kind: ThinkingStepKind.browse,
+            hits: event.visitedPages,
+          ),
+        );
         _updateStreamingMessage();
         _notify();
         break;
@@ -530,6 +568,7 @@ class ConversationController extends ChangeNotifier {
       searchHits: _streamHits,
       searchQueries: _streamQueries,
       visitedPages: _streamVisitedPages,
+      thinkingSteps: _streamSteps,
       citedMemoryIds: _streamMemoryIds,
     );
     _streamingMessage = updated;
@@ -578,6 +617,7 @@ class ConversationController extends ChangeNotifier {
       searchHits: _streamHits,
       searchQueries: _streamQueries,
       visitedPages: _streamVisitedPages,
+      thinkingSteps: _streamSteps,
       citedMemoryIds: _streamMemoryIds,
       error: failed && !stopped ? '没有收到有效回复，请重试' : null,
     );
@@ -757,6 +797,7 @@ class ConversationController extends ChangeNotifier {
       ),
     ];
     final assistant = old.copyWith(
+      createdAt: DateTime.now(),
       content: '',
       reasoning: '',
       status: MessageStatus.streaming,
@@ -765,6 +806,9 @@ class ConversationController extends ChangeNotifier {
       clearError: true,
       tokens: 0,
       searchHits: const <SearchHit>[],
+      searchQueries: const <String>[],
+      visitedPages: const <SearchHit>[],
+      thinkingSteps: const <ThinkingStep>[],
     );
     _messages[index] = assistant;
     await _db.saveMessage(assistant);
@@ -792,6 +836,7 @@ class ConversationController extends ChangeNotifier {
     if (index < 0) return;
 
     final assistant = last.copyWith(
+      createdAt: DateTime.now(),
       status: MessageStatus.streaming,
       clearError: true,
     );

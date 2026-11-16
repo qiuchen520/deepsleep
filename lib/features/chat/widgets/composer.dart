@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/profile_models.dart';
+import '../../../services/voice_service.dart';
 import '../../../state/app_services.dart';
 import '../../../state/conversation_controller.dart';
 import '../../../state/settings_controller.dart';
@@ -178,14 +179,12 @@ class Composer extends StatelessWidget {
                         ),
                       ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 12, 0),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 60),
-                        child: TextField(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
+                      child: TextField(
                           controller: textController,
                           focusNode: focusNode,
                           minLines: 1,
-                          maxLines: 6,
+                          maxLines: 8,
                           keyboardType: TextInputType.multiline,
                           textInputAction: appSettings.sendWithEnter
                               ? TextInputAction.send
@@ -216,7 +215,6 @@ class Composer extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ),
                       ),
                     ),
                     Padding(
@@ -259,6 +257,12 @@ class Composer extends StatelessWidget {
                                   onTap: () => _toggleSearch(context),
                                 ),
                               ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: _VoiceButton(
+                              textController: textController,
                             ),
                           ),
                           Padding(
@@ -389,6 +393,79 @@ class _CircleButton extends StatelessWidget {
             color: enabled
                 ? colors.textSecondary
                 : colors.textTertiary.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceButton extends StatefulWidget {
+  const _VoiceButton({required this.textController});
+
+  final TextEditingController textController;
+
+  @override
+  State<_VoiceButton> createState() => _VoiceButtonState();
+}
+
+class _VoiceButtonState extends State<_VoiceButton> {
+  bool _listening = false;
+
+  Future<void> _toggle() async {
+    final voice = VoiceService.instance;
+    if (_listening) {
+      await voice.stopListening();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final ok = await voice.initSpeech();
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('语音识别不可用，请检查麦克风权限')),
+        );
+      return;
+    }
+    setState(() => _listening = true);
+    final base = widget.textController.text;
+    await voice.startListening(
+      onResult: (text, isFinal) {
+        final merged = base.isEmpty ? text : '$base${text.trim()}';
+        widget.textController.value = TextEditingValue(
+          text: merged,
+          selection: TextSelection.collapsed(offset: merged.length),
+        );
+      },
+      onDone: () {
+        if (mounted) setState(() => _listening = false);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Tooltip(
+      message: _listening ? '停止语音输入' : '语音输入',
+      child: InkWell(
+        onTap: _toggle,
+        borderRadius: BorderRadius.circular(100),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _listening ? colors.brand : colors.bgHover,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _listening ? Icons.mic_rounded : Icons.mic_none_rounded,
+            size: 20,
+            color: _listening ? Colors.white : colors.textSecondary,
           ),
         ),
       ),

@@ -25,7 +25,8 @@ ANDROID = ROOT / "android"
 PROJECT_NAME = "deepsleep"
 ORG = "com.deepsleep"
 APP_LABEL = "DeepSleep"
-MIN_SDK = 23
+# flutter_tts 4.x 的 Android 实现要求 minSdk >= 24。
+MIN_SDK = 24
 
 
 def run(cmd: list[str]) -> None:
@@ -59,6 +60,15 @@ def copy_android() -> None:
     print(f"copied {src} -> {ANDROID}")
 
 
+def _insert_before_application(text: str, snippet: str) -> str:
+    """把一段 XML 插到 <application> 之前（保持在 <manifest> 内部）。"""
+    match = re.search(r"^([ \t]*)<application\b", text, re.MULTILINE)
+    if not match:
+        sys.exit("AndroidManifest.xml 缺少 <application> 标签")
+    insert_at = match.start()
+    return text[:insert_at] + snippet + text[insert_at:]
+
+
 def patch_manifest() -> None:
     manifest = ANDROID / "app/src/main/AndroidManifest.xml"
     if not manifest.exists():
@@ -76,9 +86,53 @@ def patch_manifest() -> None:
             '    <uses-permission android:name="android.permission.INTERNET"/>'
         )
         text = text[:insert_at] + permission + text[insert_at:]
+
+    # 语音输入：speech_to_text 需要麦克风权限（放在 <application> 之前）。
+    if "android.permission.RECORD_AUDIO" not in text:
+        text = _insert_before_application(
+            text,
+            "\n    <!-- 语音输入（speech_to_text 录音识别） -->\n"
+            '    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n',
+        )
+
+    # Android 11+ 包可见性：不声明 queries 时语音识别与 TTS 引擎可能不可见。
+    # - RecognitionService 供 speech_to_text 查找系统识别服务；
+    # - TTS_SERVICE 供 flutter_tts 查找系统语音合成引擎。
+    voice_intents = ""
+    if "android.speech.RecognitionService" not in text:
+        voice_intents += (
+            "        <intent>\n"
+            '            <action android:name="android.speech.RecognitionService"/>\n'
+            "        </intent>\n"
+        )
+    if "android.intent.action.TTS_SERVICE" not in text:
+        voice_intents += (
+            "        <intent>\n"
+            '            <action android:name="android.intent.action.TTS_SERVICE"/>\n'
+            "        </intent>\n"
+        )
+    if voice_intents:
+        if "<queries" in text:
+            # Flutter 模板自带的 <queries>（PROCESS_TEXT）里合并 intent，不重复加块。
+            match = re.search(r"[ \t]*</queries>", text)
+            if not match:
+                sys.exit("AndroidManifest.xml 中的 <queries> 未闭合")
+            text = text[: match.start()] + voice_intents + text[match.start() :]
+        else:
+            text = _insert_before_application(
+                text,
+                "\n    <!-- Android 11+ 包可见性：语音识别服务与 TTS 引擎 -->\n"
+                "    <queries>\n"
+                f"{voice_intents}"
+                "    </queries>\n",
+            )
+
     text = re.sub(r'android:label="[^"]*"', f'android:label="{APP_LABEL}"', text)
     manifest.write_text(text, encoding="utf-8")
-    print("patched AndroidManifest.xml (INTERNET permission + label)")
+    print(
+        "patched AndroidManifest.xml "
+        "(INTERNET + RECORD_AUDIO permissions, queries, label)"
+    )
 
 
 def patch_gradle() -> None:
@@ -101,7 +155,7 @@ def patch_gradle() -> None:
             f"minSdkVersion {MIN_SDK}",
             text,
         )
-        # 有些模板直接写数字：统一成 23
+        # 有些模板直接写数字：统一成 MIN_SDK
         text = re.sub(
             r"minSdk\s*=\s*\d+",
             f"minSdk = {MIN_SDK}",

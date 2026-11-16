@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/chat_models.dart';
+import '../../services/voice_service.dart';
 import '../../state/app_services.dart';
 import '../../state/conversation_controller.dart';
 import '../../state/settings_controller.dart';
@@ -107,6 +108,10 @@ class _ChatViewState extends State<ChatView> {
 
   void _handleSettingsChanged() {
     if (!mounted) return;
+    if (!_conversations.streaming &&
+        _conversations.deepThinking != _settings.settings.deepThinking) {
+      _conversations.setDeepThinking(_settings.settings.deepThinking);
+    }
     setState(() {});
   }
 
@@ -298,13 +303,27 @@ class _ChatHeader extends StatelessWidget {
             ),
           ),
           _HeaderIconButton(
-            icon: Icons.volume_up_outlined,
-            tooltip: '朗读',
-            onTap: () => ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(content: Text('朗读功能即将上线')),
-              ),
+            icon: VoiceService.instance.isSpeaking
+                ? Icons.volume_up_rounded
+                : Icons.volume_up_outlined,
+            tooltip: '朗读上一条回答',
+            onTap: () async {
+              final voice = VoiceService.instance;
+              if (voice.isSpeaking) {
+                await voice.stopSpeaking();
+              } else {
+                final text = controller.lastAssistantMessage?.displayContent;
+                if (text == null || text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(content: Text('还没有可朗读的回答')),
+                    );
+                  return;
+                }
+                await voice.speak(text);
+              }
+            },
           ),
           _HeaderIconButton(
             icon: Icons.add_circle_outline_rounded,
@@ -334,11 +353,11 @@ class _HeaderIconButton extends StatelessWidget {
     final colors = context.colors;
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: 20, color: colors.textSecondary),
+      icon: Icon(icon, size: 24, color: colors.textSecondary),
       tooltip: tooltip,
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+      constraints: const BoxConstraints.tightFor(width: 46, height: 46),
     );
   }
 }

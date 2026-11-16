@@ -143,6 +143,65 @@ class SearchHit {
       );
 }
 
+/// 思考链中的一个步骤：思考文字 / 一次搜索 / 一次网页阅读。
+enum ThinkingStepKind {
+  reasoning,
+  search,
+  browse;
+
+  static ThinkingStepKind fromName(String? name) =>
+      ThinkingStepKind.values.firstWhere(
+        (e) => e.name == name,
+        orElse: () => ThinkingStepKind.reasoning,
+      );
+}
+
+class ThinkingStep {
+  const ThinkingStep({
+    required this.kind,
+    this.text = '',
+    this.queries = const <String>[],
+    this.hits = const <SearchHit>[],
+  });
+
+  final ThinkingStepKind kind;
+  final String text;
+  final List<String> queries;
+  final List<SearchHit> hits;
+
+  ThinkingStep copyWith({
+    String? text,
+    List<String>? queries,
+    List<SearchHit>? hits,
+  }) {
+    return ThinkingStep(
+      kind: kind,
+      text: text ?? this.text,
+      queries: queries ?? this.queries,
+      hits: hits ?? this.hits,
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'kind': kind.name,
+        'text': text,
+        'queries': queries,
+        'hits': hits.map((e) => e.toJson()).toList(),
+      };
+
+  static ThinkingStep fromJson(Map<String, dynamic> json) => ThinkingStep(
+        kind: ThinkingStepKind.fromName(json['kind'] as String?),
+        text: json['text'] as String? ?? '',
+        queries: (json['queries'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList(),
+        hits: (json['hits'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(SearchHit.fromJson)
+            .toList(),
+      );
+}
+
 /// 消息的历史版本（重新生成 / 编辑前的版本）。
 class MessageVersion {
   const MessageVersion({
@@ -192,6 +251,7 @@ class ChatMessage {
     this.searchHits = const <SearchHit>[],
     this.searchQueries = const <String>[],
     this.visitedPages = const <SearchHit>[],
+    this.thinkingSteps = const <ThinkingStep>[],
     this.citedMemoryIds = const <String>[],
     this.compressed = false,
     this.error,
@@ -222,6 +282,9 @@ class ChatMessage {
   /// 本轮阅读过的网页（展示在思考面板里）。
   final List<SearchHit> visitedPages;
 
+  /// 按时间顺序记录的思考链（思考文字 / 搜索 / 阅读）。
+  final List<ThinkingStep> thinkingSteps;
+
   /// 本轮注入过、并被模型实际参考的记忆 ID（用于「引用记忆」展示）。
   final List<String> citedMemoryIds;
   final bool compressed;
@@ -245,6 +308,7 @@ class ChatMessage {
   bool get isEmpty => displayContent.trim().isEmpty && displayReasoning.trim().isEmpty;
 
   ChatMessage copyWith({
+    DateTime? createdAt,
     String? content,
     String? reasoning,
     MessageStatus? status,
@@ -256,6 +320,7 @@ class ChatMessage {
     List<SearchHit>? searchHits,
     List<String>? searchQueries,
     List<SearchHit>? visitedPages,
+    List<ThinkingStep>? thinkingSteps,
     List<String>? citedMemoryIds,
     bool? compressed,
     String? error,
@@ -268,7 +333,7 @@ class ChatMessage {
       content: content ?? this.content,
       reasoning: reasoning ?? this.reasoning,
       status: status ?? this.status,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       finishedAt: finishedAt ?? this.finishedAt,
       tokens: tokens ?? this.tokens,
       attachments: attachments ?? this.attachments,
@@ -277,6 +342,7 @@ class ChatMessage {
       searchHits: searchHits ?? this.searchHits,
       searchQueries: searchQueries ?? this.searchQueries,
       visitedPages: visitedPages ?? this.visitedPages,
+      thinkingSteps: thinkingSteps ?? this.thinkingSteps,
       citedMemoryIds: citedMemoryIds ?? this.citedMemoryIds,
       compressed: compressed ?? this.compressed,
       error: clearError ? null : (error ?? this.error),
@@ -299,6 +365,7 @@ class ChatMessage {
         'searchHits': searchHits.map((e) => e.toJson()).toList(),
         'searchQueries': searchQueries,
         'visitedPages': visitedPages.map((e) => e.toJson()).toList(),
+        'thinkingSteps': thinkingSteps.map((e) => e.toJson()).toList(),
         'citedMemoryIds': citedMemoryIds,
         'compressed': compressed,
         'error': error,
@@ -335,6 +402,10 @@ class ChatMessage {
         visitedPages: (json['visitedPages'] as List<dynamic>? ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(SearchHit.fromJson)
+            .toList(),
+        thinkingSteps: (json['thinkingSteps'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(ThinkingStep.fromJson)
             .toList(),
         citedMemoryIds:
             (json['citedMemoryIds'] as List<dynamic>? ?? const [])
