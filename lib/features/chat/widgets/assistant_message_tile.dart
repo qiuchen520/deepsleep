@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_models.dart';
@@ -42,6 +43,8 @@ class AssistantMessageTile extends StatefulWidget {
 
 class _AssistantMessageTileState extends State<AssistantMessageTile> {
   bool _showActions = false;
+  bool _liked = false;
+  bool _disliked = false;
 
   void _toggleActions() {
     if (widget.isLastAssistant || widget.isStreaming) return;
@@ -136,32 +139,62 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
                   offset: const Offset(-6, 0),
                   child: Container(
                     padding: const EdgeInsets.only(top: 12, bottom: 10),
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 2,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    child: Row(
                       children: <Widget>[
                         _IconAction(
                           icon: Icons.copy_rounded,
                           tooltip: '复制',
                           onTap: hasContent ? () => _copy(context) : null,
                         ),
-                        if (isLast && !failed)
-                          _IconAction(
-                            icon: Icons.refresh_rounded,
-                            tooltip: '重新生成',
-                            onTap: () => controller.regenerateLast(),
+                        _IconAction(
+                          icon: _liked
+                              ? Icons.thumb_up_alt_rounded
+                              : Icons.thumb_up_off_alt_rounded,
+                          tooltip: '有帮助',
+                          color: _liked ? colors.brand : null,
+                          onTap: () => setState(() {
+                            _liked = !_liked;
+                            if (_liked) _disliked = false;
+                          }),
+                        ),
+                        _IconAction(
+                          icon: _disliked
+                              ? Icons.thumb_down_alt_rounded
+                              : Icons.thumb_down_off_alt_rounded,
+                          tooltip: '没帮助',
+                          color: _disliked ? colors.danger : null,
+                          onTap: () => setState(() {
+                            _disliked = !_disliked;
+                            if (_disliked) _liked = false;
+                          }),
+                        ),
+                        _IconAction(
+                          icon: Icons.volume_up_outlined,
+                          tooltip: '朗读',
+                          onTap: () => _showSnack(context, '朗读功能即将上线'),
+                        ),
+                        _IconAction(
+                          icon: Icons.ios_share_rounded,
+                          tooltip: '分享',
+                          onTap: hasContent ? () => _share(context) : null,
+                        ),
+                        if (message.hasVersions)
+                          _VersionSwitcher(
+                            message: message,
+                            controller: controller,
                           ),
+                        const Spacer(),
                         if (canContinue)
                           _IconAction(
                             icon: Icons.play_arrow_rounded,
                             tooltip: '继续生成',
                             onTap: () => controller.continueGeneration(),
                           ),
-                        if (message.hasVersions)
-                          _VersionSwitcher(
-                            message: message,
-                            controller: controller,
+                        if (isLast && !failed)
+                          _IconAction(
+                            icon: Icons.refresh_rounded,
+                            tooltip: '重新生成',
+                            onTap: () => controller.regenerateLast(),
                           ),
                       ],
                     ),
@@ -172,6 +205,18 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
         ),
       ),
     );
+  }
+
+  void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _share(BuildContext context) async {
+    final text = widget.message.displayContent.trim();
+    if (text.isEmpty) return;
+    await Share.share(text);
   }
 
   Future<void> _copy(BuildContext context) async {
@@ -235,19 +280,22 @@ class _IconAction extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
+    this.color,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final enabled = onTap != null;
-    final color = enabled
-        ? colors.textTertiary
-        : colors.textTertiary.withValues(alpha: 0.35);
+    final baseColor = this.color ?? colors.textTertiary;
+    final iconColor = enabled
+        ? baseColor
+        : baseColor.withValues(alpha: 0.35);
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -256,7 +304,7 @@ class _IconAction extends StatelessWidget {
         child: SizedBox(
           width: 28,
           height: 28,
-          child: Icon(icon, size: 16, color: color),
+          child: Icon(icon, size: 17, color: iconColor),
         ),
       ),
     );

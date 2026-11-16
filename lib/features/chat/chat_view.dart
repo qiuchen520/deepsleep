@@ -211,7 +211,6 @@ class _ChatViewState extends State<ChatView> {
             controller: controller,
             showSidebarButton: widget.showSidebarButton,
             onOpenSidebar: widget.onOpenSidebar,
-            onOpenSettings: widget.onOpenSettings,
           ),
           if (!hasApiKey) _ApiKeyHint(onTap: widget.onOpenSettings),
           Expanded(
@@ -262,65 +261,57 @@ class _ChatHeader extends StatelessWidget {
     required this.controller,
     required this.showSidebarButton,
     required this.onOpenSidebar,
-    required this.onOpenSettings,
   });
 
   final ConversationController controller;
   final bool showSidebarButton;
   final VoidCallback? onOpenSidebar;
-  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final title = controller.activeConversation?.title ?? AppInfo.appName;
-    final sidebarAction = onOpenSidebar;
     return SizedBox(
       height: 60,
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 96),
+          if (showSidebarButton)
+            _HeaderIconButton(
+              icon: Icons.menu_rounded,
+              tooltip: '会话列表',
+              onTap: onOpenSidebar,
+            )
+          else
+            const SizedBox(width: 14),
+          const SizedBox(width: 2),
+          Expanded(
             child: Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
-                height: 22 / 14,
+                height: 24 / 16,
                 color: colors.textPrimary,
               ),
             ),
           ),
-          Row(
-            children: <Widget>[
-              if (showSidebarButton)
-                _HeaderIconButton(
-                  icon: Icons.menu_rounded,
-                  tooltip: '会话列表',
-                  onTap: sidebarAction,
-                )
-              else
-                const SizedBox(width: 44),
-              const Spacer(),
-              _HeaderIconButton(
-                icon: Icons.add_comment_outlined,
-                tooltip: '新建对话',
-                onTap: () {
-                  controller.createConversation();
-                },
+          _HeaderIconButton(
+            icon: Icons.volume_up_outlined,
+            tooltip: '朗读',
+            onTap: () => ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(content: Text('朗读功能即将上线')),
               ),
-              _HeaderIconButton(
-                icon: Icons.settings_outlined,
-                tooltip: '设置',
-                onTap: onOpenSettings,
-              ),
-              const SizedBox(width: 4),
-            ],
           ),
+          _HeaderIconButton(
+            icon: Icons.add_circle_outline_rounded,
+            tooltip: '新建对话',
+            onTap: () => controller.createConversation(),
+          ),
+          const SizedBox(width: 6),
         ],
       ),
     );

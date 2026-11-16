@@ -45,12 +45,10 @@ class MessageList extends StatelessWidget {
             message.id == lastAssistantId;
         final isStreaming =
             controller.streaming && message.isStreaming && isLast;
-        // 助手消息靠左、用户消息靠右（普通聊天软件排版，不做居中内容列）。
-        final isUser = message.role == MessageRole.user;
-        return Align(
-          alignment: isUser ? Alignment.topRight : Alignment.topLeft,
+        // 与官方 Web Demo 一致：内容列居中（实列 752），列内助手左对齐、用户右对齐。
+        return Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
+            constraints: const BoxConstraints(maxWidth: 752),
             child: _MessageBody(
               message: message,
               controller: controller,

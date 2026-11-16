@@ -206,7 +206,7 @@ class Composer extends StatelessWidget {
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
                             contentPadding: EdgeInsets.zero,
-                            hintText: '给 DeepSeek 发送消息…',
+                            hintText: '发消息或按住说话',
                             hintStyle: TextStyle(
                               fontSize: 16,
                               height: 24 / 16,
@@ -229,20 +229,12 @@ class Composer extends StatelessWidget {
                               runSpacing: 6,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: <Widget>[
-                                IconButton(
-                                  onPressed: controller.streaming
+                                _CircleButton(
+                                  icon: Icons.add_rounded,
+                                  tooltip: '添加附件',
+                                  onTap: controller.streaming
                                       ? null
                                       : controller.pickAttachments,
-                                  icon: const Icon(Icons.attach_file_rounded),
-                                  iconSize: 20,
-                                  color: colors.textTertiary,
-                                  tooltip: '添加附件',
-                                  padding: EdgeInsets.zero,
-                                  visualDensity: VisualDensity.compact,
-                                  constraints: const BoxConstraints.tightFor(
-                                    width: 34,
-                                    height: 34,
-                                  ),
                                 ),
                                 _ModelChip(
                                   label: shortModelName(
@@ -357,6 +349,47 @@ class _SendButton extends StatelessWidget {
           padding: EdgeInsets.zero,
           shape: const CircleBorder(),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final enabled = onTap != null;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(100),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: colors.bgHover,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled
+                ? colors.textSecondary
+                : colors.textTertiary.withValues(alpha: 0.4),
+          ),
         ),
       ),
     );

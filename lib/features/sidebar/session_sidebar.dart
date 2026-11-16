@@ -1,11 +1,13 @@
-/// 会话侧栏：严格对齐 DeepSeek Demo 侧栏规格（docs/UI_SPEC.md §7）。
+/// 会话侧栏（对齐 DeepSeek 平板版参考图）。
 ///
-/// 结构：顶部品牌区（48）→ 新建对话（40）→ 搜索 → 分组会话列表 →
-/// 当前档案 → 记忆中心 / 设置（底部入口区 64）。
+/// 结构：顶部固定搜索框 → 置顶分组（可折叠）+ 今天 / 昨天 / 更早分组 →
+/// 底部个人信息行（头像菜单：切换档案 / 记忆中心 / 设置 / 关于）。
 library;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/time_utils.dart';
 import '../../data/models/chat_models.dart';
@@ -18,26 +20,6 @@ const Color _hoverLight = Color(0xFFF1F3F5);
 const Color _hoverDark = Color(0xFF2C2C2E);
 const Color _activeLight = Color(0xFFE4EDFD);
 const Color _activeDark = Color(0xFF353638);
-const Color _newChatDark = Color(0xFF43454A);
-const Color _newChatTextDark = Color(0xFFF9FAFB);
-
-// 新建按钮阴影（浅色）：0 -2px 2px rgba(72,104,178,.04)、
-// 0 2px 2px rgba(106,111,117,.09)、0 1px 2px rgba(72,104,178,.08)。
-const List<BoxShadow> _newChatShadow = <BoxShadow>[
-  BoxShadow(color: Color(0x0A4868B2), offset: Offset(0, -2), blurRadius: 2),
-  BoxShadow(color: Color(0x176A6F75), offset: Offset(0, 2), blurRadius: 2),
-  BoxShadow(color: Color(0x144868B2), offset: Offset(0, 1), blurRadius: 2),
-];
-const List<BoxShadow> _newChatShadowHover = <BoxShadow>[
-  BoxShadow(color: Color(0x0A4868B2), offset: Offset(0, 4), blurRadius: 4),
-  BoxShadow(color: Color(0x0A4868B2), offset: Offset(0, -3), blurRadius: 4),
-  BoxShadow(color: Color(0x1A6A6F75), offset: Offset(0, 6), blurRadius: 6),
-];
-// 深色无阴影可用，用近似内高光 + 淡投影替代 inset。
-const List<BoxShadow> _newChatShadowDark = <BoxShadow>[
-  BoxShadow(color: Color(0x1AFFFFFF), offset: Offset(0, 1), blurRadius: 1),
-  BoxShadow(color: Color(0x146A6F75), offset: Offset(0, 2), blurRadius: 4),
-];
 
 /// 会话侧栏。
 ///
@@ -69,7 +51,10 @@ class SessionSidebar extends StatelessWidget {
 }
 
 /// 会话条目菜单动作。
-enum _ConvAction { rename, pin, export, delete }
+enum _ConvAction { rename, pin, export, select, delete }
+
+/// 底部个人信息菜单动作。
+enum _ProfileAction { switchProfile, memory, settings, about }
 
 class _SidebarBody extends StatefulWidget {
   const _SidebarBody({
@@ -92,6 +77,10 @@ class _SidebarBody extends StatefulWidget {
 class _SidebarBodyState extends State<_SidebarBody> {
   final TextEditingController _searchController = TextEditingController();
   late final Listenable _listenable;
+
+  bool _pinnedCollapsed = false;
+  bool _selecting = false;
+  final Set<String> _selectedIds = <String>{};
 
   @override
   void initState() {
@@ -125,16 +114,176 @@ class _SidebarBodyState extends State<_SidebarBody> {
     action();
   }
 
-  Future<void> _newConversation() async {
-    await widget.services.conversations.createConversation();
-    if (!mounted) return;
-    widget.onClose?.call();
-  }
-
   Future<void> _openConversation(String id) async {
     await widget.services.conversations.openConversation(id);
     if (!mounted) return;
     widget.onClose?.call();
+  }
+
+  Future<void> _openUrl(String url) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        messenger.showSnackBar(SnackBar(content: Text('无法打开链接：$url')));
+      }
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text('打开链接失败：$error')));
+    }
+  }
+
+  Future<void> _showAbout() async {
+    final colors = context.colors;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('关于 DeepSleep'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                '版本 v${AppInfo.version}',
+                style: TextStyle(fontSize: 14, color: colors.textPrimary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${AppInfo.appName}（${AppInfo.appNameCn}）以 MIT 许可证开源。',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.5,
+                  color: colors.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '免责声明：${AppInfo.disclaimer}。',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.5,
+                  color: colors.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () => _openUrl(AppInfo.repoUrl),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: <Widget>[
+                      Text(
+                        'GitHub 仓库',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.brandText,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.open_in_new,
+                        size: 14,
+                        color: colors.brandText,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _handleProfileAction(_ProfileAction action) {
+    switch (action) {
+      case _ProfileAction.switchProfile:
+        _showProfileSheet();
+        break;
+      case _ProfileAction.memory:
+        _openMemoryCenter();
+        break;
+      case _ProfileAction.settings:
+        _openEntry(widget.onOpenSettings);
+        break;
+      case _ProfileAction.about:
+        _showAbout();
+        break;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 多选
+  // ---------------------------------------------------------------------------
+
+  void _startSelecting(Conversation conversation) {
+    setState(() {
+      _selecting = true;
+      _selectedIds
+        ..clear()
+        ..add(conversation.id);
+    });
+  }
+
+  void _cancelSelecting() {
+    setState(() {
+      _selecting = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelected(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selectedIds.isEmpty) return;
+    final colors = context.colors;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('删除对话'),
+          content: Text('删除后不可恢复。\n\n已选择 ${_selectedIds.length} 个对话。'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: colors.danger),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    final ids = List<String>.from(_selectedIds);
+    for (final id in ids) {
+      await widget.services.conversations.deleteConversation(id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _selecting = false;
+      _selectedIds.clear();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -154,6 +303,9 @@ class _SidebarBodyState extends State<_SidebarBody> {
         break;
       case _ConvAction.export:
         await _exportMarkdown(conversation);
+        break;
+      case _ConvAction.select:
+        _startSelecting(conversation);
         break;
       case _ConvAction.delete:
         await _delete(conversation);
@@ -427,95 +579,22 @@ class _SidebarBodyState extends State<_SidebarBody> {
           right: BorderSide(color: colors.border, width: 1),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-        child: ListenableBuilder(
-          listenable: _listenable,
-          builder: (context, _) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                _buildHeader(context),
-                _NewChatButton(onTap: _newConversation),
-                const SizedBox(height: 12),
-                _buildSearchField(context),
-                const SizedBox(height: 24),
-                Expanded(child: _buildConversationList(context)),
-                _buildProfileRow(context),
-                const SizedBox(height: 4),
-                Divider(height: 1, thickness: 1, color: colors.border),
-                SizedBox(
-                  height: 64,
-                  child: Column(
-                    children: <Widget>[
-                      _buildBottomEntry(
-                        context,
-                        leading: Icon(
-                          Icons.psychology_outlined,
-                          size: 18,
-                          color: colors.textSecondary,
-                        ),
-                        label: '记忆中心',
-                        trailing: widget.services.memories.stats.active > 0
-                            ? '${widget.services.memories.stats.active}'
-                            : null,
-                        onTap: _openMemoryCenter,
-                      ),
-                      _buildBottomEntry(
-                        context,
-                        leading: Icon(
-                          Icons.settings_outlined,
-                          size: 18,
-                          color: colors.textSecondary,
-                        ),
-                        label: '设置',
-                        onTap: () => _openEntry(widget.onOpenSettings),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      height: 48,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.fromLTRB(4, 15, 0, 10),
-      child: Row(
-        children: <Widget>[
-          Icon(Icons.auto_awesome, size: 22, color: colors.brand),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'DeepSleep',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 20,
-                height: 22 / 20,
-                fontWeight: FontWeight.w600,
-                color: colors.brand,
-              ),
-            ),
-          ),
-          if (widget.onClose != null)
-            IconButton(
-              onPressed: widget.onClose,
-              tooltip: '关闭侧栏',
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(),
-              iconSize: 18,
-              icon: Icon(Icons.close, color: colors.textSecondary),
-            ),
-        ],
+      padding: const EdgeInsets.all(12),
+      child: ListenableBuilder(
+        listenable: _listenable,
+        builder: (context, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _buildSearchField(context),
+              const SizedBox(height: 8),
+              if (_selecting) _buildSelectionBar(context),
+              Expanded(child: _buildConversationList(context)),
+              Divider(height: 1, thickness: 1, color: colors.border),
+              _buildProfileBar(context),
+            ],
+          );
+        },
       ),
     );
   }
@@ -524,11 +603,11 @@ class _SidebarBodyState extends State<_SidebarBody> {
     final colors = context.colors;
     final isDark = context.isDark;
     final noBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       borderSide: BorderSide.none,
     );
     return SizedBox(
-      height: 32,
+      height: 40,
       child: TextField(
         controller: _searchController,
         onChanged: (_) => setState(() {}),
@@ -538,10 +617,10 @@ class _SidebarBodyState extends State<_SidebarBody> {
           isDense: true,
           filled: true,
           fillColor: isDark ? _hoverDark : _hoverLight,
-          hintText: '搜索对话',
+          hintText: '搜索对话内容…',
           hintStyle: TextStyle(fontSize: 14, color: colors.textTertiary),
-          prefixIcon: Icon(Icons.search, size: 16, color: colors.textTertiary),
-          prefixIconConstraints: const BoxConstraints(minWidth: 34),
+          prefixIcon: Icon(Icons.search, size: 18, color: colors.textTertiary),
+          prefixIconConstraints: const BoxConstraints(minWidth: 38),
           suffixIcon: _searchController.text.isEmpty
               ? null
               : IconButton(
@@ -549,18 +628,58 @@ class _SidebarBodyState extends State<_SidebarBody> {
                     _searchController.clear();
                     setState(() {});
                   },
-                  iconSize: 15,
+                  iconSize: 16,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   tooltip: '清除搜索',
                   icon: Icon(Icons.close, color: colors.textTertiary),
                 ),
-          suffixIconConstraints: const BoxConstraints(minWidth: 30),
+          suffixIconConstraints: const BoxConstraints(minWidth: 32),
           contentPadding: EdgeInsets.zero,
           border: noBorder,
           enabledBorder: noBorder,
           focusedBorder: noBorder,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: <Widget>[
+          Text(
+            '已选 ${_selectedIds.length} 项',
+            style: TextStyle(fontSize: 13, color: colors.textSecondary),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              '删除',
+              style: TextStyle(fontSize: 13, color: colors.danger),
+            ),
+          ),
+          TextButton(
+            onPressed: _cancelSelecting,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              '取消',
+              style: TextStyle(fontSize: 13, color: colors.textSecondary),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -579,65 +698,122 @@ class _SidebarBodyState extends State<_SidebarBody> {
       return _buildEmptyState(context, hasSearch: query.isNotEmpty);
     }
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: _buildGroups(context, filtered),
-    );
-  }
+    final pinned = filtered.where((c) => c.pinned).toList(growable: false);
+    final normal = filtered.where((c) => !c.pinned).toList(growable: false);
 
-  List<Widget> _buildGroups(
-    BuildContext context,
-    List<Conversation> conversations,
-  ) {
-    const labels = <String>['今天', '昨天', '7 天内', '30 天内', '更早'];
-    final now = DateTime.now();
-    final grouped = <String, List<Conversation>>{};
-    for (final conversation in conversations) {
-      final label = conversationGroupLabel(conversation.updatedAt, now: now);
-      grouped.putIfAbsent(label, () => <Conversation>[]).add(conversation);
+    final children = <Widget>[];
+    if (pinned.isNotEmpty) {
+      children.add(_buildPinnedHeader(context));
+      if (!_pinnedCollapsed) {
+        for (final conversation in pinned) {
+          children.add(_buildRow(context, conversation));
+        }
+      }
     }
 
-    final widgets = <Widget>[];
-    var first = true;
-    for (final label in labels) {
+    final now = DateTime.now();
+    final grouped = <String, List<Conversation>>{};
+    for (final conversation in normal) {
+      final label = _groupLabel(conversation.updatedAt, now);
+      grouped.putIfAbsent(label, () => <Conversation>[]).add(conversation);
+    }
+    var isFirstGroup = true;
+    for (final label in const <String>['今天', '昨天', '更早']) {
       final group = grouped[label];
       if (group == null || group.isEmpty) continue;
-      widgets.add(
+      children.add(
         Padding(
-          padding: EdgeInsets.only(top: first ? 0 : 16),
+          padding: EdgeInsets.only(top: isFirstGroup && pinned.isEmpty ? 0 : 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 18 / 12,
-                    fontWeight: FontWeight.w500,
-                    color: context.colors.textTertiary,
-                  ),
-                ),
-              ),
+              _buildSectionHeader(context, label),
               for (final conversation in group)
-                _ConversationRow(
-                  conversation: conversation,
-                  active:
-                      widget.services.conversations.activeId == conversation.id,
-                  onTap: () => _openConversation(conversation.id),
-                  onAction: (action) => _handleAction(conversation, action),
-                ),
+                _buildRow(context, conversation),
             ],
           ),
         ),
       );
-      first = false;
+      isFirstGroup = false;
     }
-    return widgets;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 8),
+      children: children,
+    );
+  }
+
+  String _groupLabel(DateTime time, DateTime now) {
+    final label = conversationGroupLabel(time, now: now);
+    if (label == '今天' || label == '昨天') return label;
+    return '更早';
+  }
+
+  Widget _buildPinnedHeader(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 2, 2, 2),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              '置顶',
+              style: TextStyle(
+                fontSize: 12,
+                height: 18 / 12,
+                fontWeight: FontWeight.w500,
+                color: colors.textTertiary,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: _pinnedCollapsed ? '展开置顶' : '折叠置顶',
+            onPressed: () =>
+                setState(() => _pinnedCollapsed = !_pinnedCollapsed),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(),
+            iconSize: 16,
+            icon: Icon(
+              _pinnedCollapsed ? Icons.expand_more : Icons.expand_less,
+              color: colors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          height: 18 / 12,
+          fontWeight: FontWeight.w500,
+          color: context.colors.textTertiary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRow(BuildContext context, Conversation conversation) {
+    return _ConversationRow(
+      conversation: conversation,
+      active: widget.services.conversations.activeId == conversation.id,
+      selecting: _selecting,
+      selected: _selectedIds.contains(conversation.id),
+      onTap: () {
+        if (_selecting) {
+          _toggleSelected(conversation.id);
+        } else {
+          _openConversation(conversation.id);
+        }
+      },
+      onAction: (action) => _handleAction(conversation, action),
+    );
   }
 
   Widget _buildEmptyState(BuildContext context, {required bool hasSearch}) {
@@ -655,7 +831,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
             if (!hasSearch) ...<Widget>[
               const SizedBox(height: 4),
               Text(
-                '点上方「开启新对话」开始第一次聊天',
+                '点顶栏「+」开始第一次聊天',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: colors.textTertiary),
               ),
@@ -666,38 +842,106 @@ class _SidebarBodyState extends State<_SidebarBody> {
     );
   }
 
-  Widget _buildProfileRow(BuildContext context) {
+  Widget _buildProfileBar(BuildContext context) {
+    final colors = context.colors;
     final profile = widget.services.settings.activeProfile;
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: _BottomRow(
-        height: 32,
-        onTap: _showProfileSheet,
-        child: Row(
-          children: <Widget>[
-            SizedBox(
-              width: 18,
-              child: Center(
+      padding: const EdgeInsets.only(top: 8),
+      child: PopupMenuButton<_ProfileAction>(
+        tooltip: '当前档案',
+        color: colors.bgElevated,
+        elevation: 3,
+        offset: const Offset(0, -8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        onSelected: _handleProfileAction,
+        itemBuilder: (menuContext) => <PopupMenuEntry<_ProfileAction>>[
+          _menuItem(
+            context,
+            value: _ProfileAction.switchProfile,
+            icon: Icons.swap_horiz,
+            label: '切换档案',
+          ),
+          _menuItem(
+            context,
+            value: _ProfileAction.memory,
+            icon: Icons.psychology_outlined,
+            label: '记忆中心',
+          ),
+          _menuItem(
+            context,
+            value: _ProfileAction.settings,
+            icon: Icons.settings_outlined,
+            label: '设置',
+          ),
+          _menuItem(
+            context,
+            value: _ProfileAction.about,
+            icon: Icons.info_outline,
+            label: '关于',
+          ),
+        ],
+        child: SizedBox(
+          height: 40,
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.brandSoft,
+                  shape: BoxShape.circle,
+                ),
                 child: Text(
                   profile.emoji,
-                  style: const TextStyle(fontSize: 15),
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                profile.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: context.colors.textSecondary,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  profile.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textPrimary,
+                  ),
                 ),
               ),
-            ),
-          ],
+              Icon(
+                Icons.more_horiz,
+                size: 18,
+                color: colors.textTertiary,
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  PopupMenuItem<T> _menuItem<T>(
+    BuildContext context, {
+    required T value,
+    required IconData icon,
+    required String label,
+    Color? color,
+  }) {
+    final colors = context.colors;
+    final itemColor = color ?? colors.textPrimary;
+    return PopupMenuItem<T>(
+      value: value,
+      height: 48,
+      child: Row(
+        children: <Widget>[
+          Icon(icon, size: 20, color: color ?? colors.textSecondary),
+          const SizedBox(width: 12),
+          Text(label, style: TextStyle(fontSize: 16, color: itemColor)),
+        ],
       ),
     );
   }
@@ -708,165 +952,10 @@ class _SidebarBodyState extends State<_SidebarBody> {
     if (!mounted) return;
     _openEntry(widget.onOpenMemory);
   }
-
-  Widget _buildBottomEntry(
-    BuildContext context, {
-    required Widget leading,
-    required String label,
-    String? trailing,
-    required VoidCallback onTap,
-  }) {
-    final colors = context.colors;
-    return _BottomRow(
-      height: 32,
-      onTap: onTap,
-      child: Row(
-        children: <Widget>[
-          SizedBox(width: 18, child: Center(child: leading)),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 14, color: colors.textSecondary),
-            ),
-          ),
-          if (trailing != null)
-            Text(
-              trailing,
-              style: TextStyle(fontSize: 11, color: colors.textTertiary),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 // -----------------------------------------------------------------------------
-// 新建对话按钮（40 高、胶囊、带 Demo 阴影与 hover 阴影）
-// -----------------------------------------------------------------------------
-
-class _NewChatButton extends StatefulWidget {
-  const _NewChatButton({super.key, required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  State<_NewChatButton> createState() => _NewChatButtonState();
-}
-
-class _NewChatButtonState extends State<_NewChatButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final isDark = context.isDark;
-    final background = isDark ? _newChatDark : colors.bgBase;
-    final foreground =
-        isDark ? _newChatTextDark : colors.textPrimary;
-    final shadows = isDark
-        ? _newChatShadowDark
-        : (_hovered ? _newChatShadowHover : _newChatShadow);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: SizedBox(
-        height: 40,
-        width: double.infinity,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(100),
-            boxShadow: shadows,
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(100),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(100),
-              onTap: widget.onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(Icons.add, size: 16, color: foreground),
-                    const SizedBox(width: 6),
-                    Text(
-                      '开启新对话',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 22 / 14,
-                        fontWeight: FontWeight.w500,
-                        color: foreground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// 底部入口行（32 高、hover 态）
-// -----------------------------------------------------------------------------
-
-class _BottomRow extends StatefulWidget {
-  const _BottomRow({
-    super.key,
-    required this.child,
-    required this.onTap,
-    this.height = 32,
-  });
-
-  final Widget child;
-  final VoidCallback onTap;
-  final double height;
-
-  @override
-  State<_BottomRow> createState() => _BottomRowState();
-}
-
-class _BottomRowState extends State<_BottomRow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: SizedBox(
-        height: widget.height,
-        child: Material(
-          color: _hovered
-              ? (isDark ? _hoverDark : _hoverLight)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: widget.onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: widget.child,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// 会话行（40 高、圆角 12、hover/选中态、长按或 hover 显示菜单按钮）
+// 会话行（40 高、圆角 10、选中/多选态、右侧更多菜单）
 // -----------------------------------------------------------------------------
 
 class _ConversationRow extends StatefulWidget {
@@ -874,12 +963,16 @@ class _ConversationRow extends StatefulWidget {
     super.key,
     required this.conversation,
     required this.active,
+    required this.selecting,
+    required this.selected,
     required this.onTap,
     required this.onAction,
   });
 
   final Conversation conversation;
   final bool active;
+  final bool selecting;
+  final bool selected;
   final VoidCallback onTap;
   final ValueChanged<_ConvAction> onAction;
 
@@ -892,37 +985,158 @@ class _ConversationRowState extends State<_ConversationRow> {
       GlobalKey<PopupMenuButtonState<_ConvAction>>();
   bool _hovered = false;
 
+  Widget _buildMenu(BuildContext context) {
+    final colors = context.colors;
+    return PopupMenuButton<_ConvAction>(
+      key: _menuKey,
+      tooltip: '更多操作',
+      color: colors.bgElevated,
+      elevation: 3,
+      padding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      onSelected: widget.onAction,
+      icon: Icon(Icons.more_horiz, size: 18, color: colors.textTertiary),
+      itemBuilder: (menuContext) => <PopupMenuEntry<_ConvAction>>[
+        PopupMenuItem<_ConvAction>(
+          value: _ConvAction.rename,
+          height: 48,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.edit_outlined,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '重命名',
+                style: TextStyle(fontSize: 16, color: colors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<_ConvAction>(
+          value: _ConvAction.pin,
+          height: 48,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                widget.conversation.pinned
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                widget.conversation.pinned ? '取消置顶' : '置顶',
+                style: TextStyle(fontSize: 16, color: colors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<_ConvAction>(
+          value: _ConvAction.export,
+          height: 48,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.ios_share,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '导出 Markdown',
+                style: TextStyle(fontSize: 16, color: colors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<_ConvAction>(
+          value: _ConvAction.select,
+          height: 48,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.checklist,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '多选',
+                style: TextStyle(fontSize: 16, color: colors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<_ConvAction>(
+          value: _ConvAction.delete,
+          height: 48,
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.delete_outline, size: 20, color: colors.danger),
+              const SizedBox(width: 12),
+              Text(
+                '删除',
+                style: TextStyle(fontSize: 16, color: colors.danger),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final isDark = context.isDark;
-    final showMore = _hovered || widget.active;
-
-    final background = widget.active
+    final background = widget.selected || widget.active
         ? (isDark ? _activeDark : _activeLight)
-        : (_hovered ? (isDark ? _hoverDark : _hoverLight) : Colors.transparent);
-    final textColor = widget.active
+        : (_hovered
+            ? (isDark ? _hoverDark : _hoverLight)
+            : Colors.transparent);
+    final textColor = widget.active && !widget.selecting
         ? (isDark ? Colors.white : colors.brandText)
         : colors.textPrimary;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: SizedBox(
           height: 40,
           child: Material(
             color: background,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               onTap: widget.onTap,
               onLongPress: () => _menuKey.currentState?.showButtonMenu(),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 9, 6, 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
                 child: Row(
                   children: <Widget>[
+                    if (widget.selecting) ...<Widget>[
+                      Icon(
+                        widget.selected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        size: 18,
+                        color: widget.selected
+                            ? colors.brand
+                            : colors.textTertiary,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
                       child: Text(
                         widget.conversation.title,
@@ -935,51 +1149,12 @@ class _ConversationRowState extends State<_ConversationRow> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Visibility(
-                      visible: showMore,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: SizedBox(
-                        width: 26,
+                    if (!widget.selecting)
+                      SizedBox(
+                        width: 28,
                         height: 22,
-                        child: PopupMenuButton<_ConvAction>(
-                          key: _menuKey,
-                          tooltip: '更多操作',
-                          padding: EdgeInsets.zero,
-                          iconSize: 16,
-                          icon: Icon(
-                            Icons.more_horiz,
-                            color: widget.active
-                                ? textColor
-                                : colors.textTertiary,
-                          ),
-                          onSelected: widget.onAction,
-                          itemBuilder: (menuContext) =>
-                              <PopupMenuEntry<_ConvAction>>[
-                            const PopupMenuItem<_ConvAction>(
-                              value: _ConvAction.rename,
-                              child: Text('重命名'),
-                            ),
-                            PopupMenuItem<_ConvAction>(
-                              value: _ConvAction.pin,
-                              child: Text(
-                                widget.conversation.pinned ? '取消置顶' : '置顶',
-                              ),
-                            ),
-                            const PopupMenuItem<_ConvAction>(
-                              value: _ConvAction.export,
-                              child: Text('导出 Markdown'),
-                            ),
-                            const PopupMenuItem<_ConvAction>(
-                              value: _ConvAction.delete,
-                              child: Text('删除'),
-                            ),
-                          ],
-                        ),
+                        child: _buildMenu(context),
                       ),
-                    ),
                   ],
                 ),
               ),

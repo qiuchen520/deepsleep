@@ -28,7 +28,7 @@ class AppInfo {
   /// 记忆抽取/压缩使用的模型（用便宜快的模型即可）。
   static const String memoryModel = 'deepseek-chat';
 
-  static const String disclaimer = '内容由 AI 生成，请仔细甄别';
+  static const String disclaimer = '回答由 AI 生成，仅供参考';
   static const String welcomeTitle = '今天有什么可以帮到你？';
 
   static const List<String> welcomeSuggestions = <String>[
