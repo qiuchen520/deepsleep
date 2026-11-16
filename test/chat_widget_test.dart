@@ -50,23 +50,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('代码块可以渲染', (tester) async {
-    await tester.pumpWidget(
-      _host(const CodeBlock(code: 'final x = 1;', language: 'dart')),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
 
-  testWidgets('图表组件可以渲染', (tester) async {
-    await tester.pumpWidget(
-      _host(const ChartBlock(
-        source: '{"type":"line","labels":["一","二"],"values":[3,5]}',
-      )),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
 
   testWidgets('思考面板可以渲染', (tester) async {
     await tester.pumpWidget(

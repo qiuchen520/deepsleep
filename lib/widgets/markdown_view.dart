@@ -202,6 +202,11 @@ MarkdownStyleSheet _styleSheetFor(AppColors colors, bool compact) {
 }
 
 class _PreBlockBuilder extends MarkdownElementBuilder {
+  /// 'pre' 是块级元素：必须返回 true，否则框架会按行内元素记账并在
+  /// 「文档以代码块结尾」时触发 _inlines 断言。
+  @override
+  bool isBlockElement() => true;
+
   @override
   Widget? visitElementAfterWithContext(
     BuildContext context,
