@@ -61,7 +61,7 @@ def main() -> int:
         is_kotlin = path.suffix == ".kts"
         signing = KOTLIN_SIGNING if is_kotlin else GROOVY_SIGNING
 
-        if "signingConfigs" not in text:
+        if 'create("release")' not in text and "signingConfigs {" not in text:
             # 插到 buildTypes 之前（android { ... } 内部）。
             match = re.search(r"^    buildTypes\s*\{", text, re.M)
             if not match:
