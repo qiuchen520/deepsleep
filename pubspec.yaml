@@ -1,7 +1,7 @@
 name: deepsleep
 description: "DeepSleep · 记忆对话 — 一个带长期记忆知识网的原生 DeepSeek 风格聊天客户端（Flutter）。"
 publish_to: "none"
-version: 1.1.4+6
+version: 1.1.5+7
 
 environment:
   sdk: ">=3.6.0 <4.0.0"

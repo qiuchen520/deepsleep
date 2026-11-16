@@ -57,8 +57,9 @@ class SearchHitsCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(6, 3, 10, 3),
           decoration: BoxDecoration(
+            color: context.isDark ? colors.bgHover : colors.bgSidebar,
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: borderColor),
+            border: Border.all(color: borderColor.withValues(alpha: 0.7)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

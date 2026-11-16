@@ -151,7 +151,7 @@ class Composer extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: focusNode.hasFocus
-                        ? colors.brand.withValues(alpha: 0.45)
+                        ? colors.brand.withValues(alpha: 0.32)
                         : borderColor,
                   ),
                   boxShadow: _cardShadow(context),

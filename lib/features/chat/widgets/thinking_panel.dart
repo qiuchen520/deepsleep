@@ -257,11 +257,11 @@ class _SearchStep extends StatelessWidget {
             ? '搜索「${step.queries.join('、')}」'
             : '正在搜索…');
     final row = Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.search_rounded, size: 15, color: colors.textTertiary),
+          Icon(Icons.travel_explore_rounded, size: 16, color: colors.textTertiary),
           const SizedBox(width: 8),
           Text(
             text,
@@ -303,11 +303,11 @@ class _BrowseStep extends StatelessWidget {
     final colors = context.colors;
     final hasPages = step.hits.isNotEmpty;
     final row = Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.article_outlined, size: 15, color: colors.textTertiary),
+          Icon(Icons.article_outlined, size: 16, color: colors.textTertiary),
           const SizedBox(width: 8),
           Text(
             hasPages ? '已浏览 ${step.hits.length} 个页面' : '正在阅读网页…',

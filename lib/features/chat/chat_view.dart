@@ -231,22 +231,32 @@ class _ChatViewState extends State<ChatView> {
                           ),
                           if (!_atBottom)
                             Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 10,
-                              child: Center(
-                                child: _BackToBottomButton(
-                                  onTap: () {
-                                    _stickToBottom = true;
-                                    _scrollToBottom();
-                                  },
-                                ),
+                              right: 16,
+                              bottom: 12,
+                              child: _BackToBottomButton(
+                                onTap: () {
+                                  _stickToBottom = true;
+                                  _scrollToBottom();
+                                },
                               ),
                             ),
                         ],
                       ),
           ),
           if (controller.compressing) const ContextTokenBar(),
+          Container(
+            height: 16,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  colors.bgBase.withValues(alpha: 0),
+                  colors.bgBase,
+                ],
+              ),
+            ),
+          ),
           Composer(
             controller: controller,
             settings: _settings,

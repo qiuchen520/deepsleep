@@ -14,12 +14,7 @@ import '../../data/models/chat_models.dart';
 import '../../data/models/profile_models.dart';
 import '../../services/contracts.dart';
 import '../../state/app_services.dart';
-
-// Demo 规格中的固定色（主题令牌未覆盖的部分，深色值单独给出）。
-const Color _hoverLight = Color(0xFFF1F3F5);
-const Color _hoverDark = Color(0xFF2C2C2E);
-const Color _activeLight = Color(0xFFE4EDFD);
-const Color _activeDark = Color(0xFF353638);
+import '../../widgets/soft_menu.dart';
 
 /// 会话侧栏。
 ///
@@ -472,7 +467,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: Icon(
-                              Icons.add,
+                              Icons.add_rounded,
                               size: 18,
                               color: sheetColors.textSecondary,
                             ),
@@ -524,7 +519,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
               style: TextStyle(fontSize: 11.5, color: colors.textTertiary),
             ),
       trailing: isActive
-          ? Icon(Icons.check, size: 16, color: colors.textSecondary)
+          ? Icon(Icons.check_rounded, size: 16, color: colors.textSecondary)
           : null,
       onTap: () => _switchProfile(sheetContext, profile),
     );
@@ -588,8 +583,38 @@ class _SidebarBodyState extends State<_SidebarBody> {
             children: <Widget>[
               _buildSearchField(context),
               const SizedBox(height: 8),
-              if (_selecting) _buildSelectionBar(context),
-              Expanded(child: _buildConversationList(context)),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      axisAlignment: -1,
+                      child: child,
+                    ),
+                  ),
+                  child: _selecting
+                      ? _buildSelectionBar(context)
+                      : const SizedBox(width: double.infinity),
+                ),
+              ),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  child: KeyedSubtree(
+                    key: ValueKey<bool>(_selecting),
+                    child: _buildConversationList(context),
+                  ),
+                ),
+              ),
               Divider(height: 1, thickness: 1, color: colors.border),
               _buildProfileBar(context),
             ],
@@ -601,7 +626,6 @@ class _SidebarBodyState extends State<_SidebarBody> {
 
   Widget _buildSearchField(BuildContext context) {
     final colors = context.colors;
-    final isDark = context.isDark;
     final noBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
       borderSide: BorderSide.none,
@@ -616,10 +640,10 @@ class _SidebarBodyState extends State<_SidebarBody> {
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: isDark ? _hoverDark : _hoverLight,
+          fillColor: colors.bgHover,
           hintText: '搜索对话内容…',
           hintStyle: TextStyle(fontSize: 14, color: colors.textTertiary),
-          prefixIcon: Icon(Icons.search, size: 18, color: colors.textTertiary),
+          prefixIcon: Icon(Icons.search_rounded, size: 18, color: colors.textTertiary),
           prefixIconConstraints: const BoxConstraints(minWidth: 38),
           suffixIcon: _searchController.text.isEmpty
               ? null
@@ -632,7 +656,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   tooltip: '清除搜索',
-                  icon: Icon(Icons.close, color: colors.textTertiary),
+                  icon: Icon(Icons.close_rounded, color: colors.textTertiary),
                 ),
           suffixIconConstraints: const BoxConstraints(minWidth: 32),
           contentPadding: EdgeInsets.zero,
@@ -646,38 +670,41 @@ class _SidebarBodyState extends State<_SidebarBody> {
 
   Widget _buildSelectionBar(BuildContext context) {
     final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: colors.bgHover,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: <Widget>[
           Text(
             '已选 ${_selectedIds.length} 项',
-            style: TextStyle(fontSize: 13, color: colors.textSecondary),
+            style: TextStyle(fontSize: 13.5, color: colors.textSecondary),
           ),
           const Spacer(),
           TextButton(
-            onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              '删除',
-              style: TextStyle(fontSize: 13, color: colors.danger),
-            ),
-          ),
-          TextButton(
             onPressed: _cancelSelecting,
             style: TextButton.styleFrom(
+              foregroundColor: colors.textSecondary,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               minimumSize: const Size(0, 32),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(
-              '取消',
-              style: TextStyle(fontSize: 13, color: colors.textSecondary),
+            child: const Text('取消', style: TextStyle(fontSize: 13.5)),
+          ),
+          const SizedBox(width: 4),
+          TextButton(
+            onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
+            style: TextButton.styleFrom(
+              foregroundColor: colors.danger,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
+            child: const Text('删除', style: TextStyle(fontSize: 13.5)),
           ),
         ],
       ),
@@ -759,8 +786,8 @@ class _SidebarBodyState extends State<_SidebarBody> {
             child: Text(
               '置顶',
               style: TextStyle(
-                fontSize: 12,
-                height: 18 / 12,
+                fontSize: 11.5,
+                height: 18 / 11.5,
                 fontWeight: FontWeight.w500,
                 color: colors.textTertiary,
               ),
@@ -775,7 +802,7 @@ class _SidebarBodyState extends State<_SidebarBody> {
             constraints: const BoxConstraints(),
             iconSize: 16,
             icon: Icon(
-              _pinnedCollapsed ? Icons.expand_more : Icons.expand_less,
+              _pinnedCollapsed ? Icons.expand_more_rounded : Icons.expand_less_rounded,
               color: colors.textTertiary,
             ),
           ),
@@ -790,8 +817,8 @@ class _SidebarBodyState extends State<_SidebarBody> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
-          height: 18 / 12,
+          fontSize: 11.5,
+          height: 18 / 11.5,
           fontWeight: FontWeight.w500,
           color: context.colors.textTertiary,
         ),
@@ -842,106 +869,97 @@ class _SidebarBodyState extends State<_SidebarBody> {
     );
   }
 
+  Offset _anchorOf(BuildContext anchorContext) {
+    final renderObject = anchorContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return Offset.zero;
+    }
+    return renderObject.localToGlobal(
+      renderObject.size.bottomRight(Offset.zero),
+    );
+  }
+
+  Future<void> _showProfileMenu(BuildContext anchorContext) async {
+    final action = await showSoftMenu<_ProfileAction>(
+      context: context,
+      anchor: _anchorOf(anchorContext),
+      items: const <SoftMenuItem<_ProfileAction>>[
+        SoftMenuItem<_ProfileAction>(
+          value: _ProfileAction.switchProfile,
+          icon: Icons.people_outline,
+          label: '切换档案',
+        ),
+        SoftMenuItem<_ProfileAction>(
+          value: _ProfileAction.memory,
+          icon: Icons.psychology_outlined,
+          label: '记忆中心',
+        ),
+        SoftMenuItem<_ProfileAction>(
+          value: _ProfileAction.settings,
+          icon: Icons.settings_outlined,
+          label: '设置',
+        ),
+        SoftMenuItem<_ProfileAction>(
+          value: _ProfileAction.about,
+          icon: Icons.info_outline,
+          label: '关于',
+        ),
+      ],
+    );
+    if (action == null) return;
+    _handleProfileAction(action);
+  }
+
   Widget _buildProfileBar(BuildContext context) {
     final colors = context.colors;
     final profile = widget.services.settings.activeProfile;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: PopupMenuButton<_ProfileAction>(
-        tooltip: '当前档案',
-        color: colors.bgElevated,
-        elevation: 3,
-        offset: const Offset(0, -8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        onSelected: _handleProfileAction,
-        itemBuilder: (menuContext) => <PopupMenuEntry<_ProfileAction>>[
-          _menuItem(
-            context,
-            value: _ProfileAction.switchProfile,
-            icon: Icons.swap_horiz,
-            label: '切换档案',
-          ),
-          _menuItem(
-            context,
-            value: _ProfileAction.memory,
-            icon: Icons.psychology_outlined,
-            label: '记忆中心',
-          ),
-          _menuItem(
-            context,
-            value: _ProfileAction.settings,
-            icon: Icons.settings_outlined,
-            label: '设置',
-          ),
-          _menuItem(
-            context,
-            value: _ProfileAction.about,
-            icon: Icons.info_outline,
-            label: '关于',
-          ),
-        ],
-        child: SizedBox(
-          height: 40,
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.brandSoft,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  profile.emoji,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  profile.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: colors.textPrimary,
+      child: Builder(
+        builder: (barContext) {
+          return InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => _showProfileMenu(barContext),
+            child: SizedBox(
+              height: 40,
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.brandSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      profile.emoji,
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      profile.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.more_horiz_rounded,
+                    size: 18,
+                    color: colors.textTertiary,
+                  ),
+                ],
               ),
-              Icon(
-                Icons.more_horiz,
-                size: 18,
-                color: colors.textTertiary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  PopupMenuItem<T> _menuItem<T>(
-    BuildContext context, {
-    required T value,
-    required IconData icon,
-    required String label,
-    Color? color,
-  }) {
-    final colors = context.colors;
-    final itemColor = color ?? colors.textPrimary;
-    return PopupMenuItem<T>(
-      value: value,
-      height: 48,
-      child: Row(
-        children: <Widget>[
-          Icon(icon, size: 20, color: color ?? colors.textSecondary),
-          const SizedBox(width: 12),
-          Text(label, style: TextStyle(fontSize: 16, color: itemColor)),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -981,127 +999,64 @@ class _ConversationRow extends StatefulWidget {
 }
 
 class _ConversationRowState extends State<_ConversationRow> {
-  final GlobalKey<PopupMenuButtonState<_ConvAction>> _menuKey =
-      GlobalKey<PopupMenuButtonState<_ConvAction>>();
   bool _hovered = false;
 
-  Widget _buildMenu(BuildContext context) {
-    final colors = context.colors;
-    return PopupMenuButton<_ConvAction>(
-      key: _menuKey,
-      tooltip: '更多操作',
-      color: colors.bgElevated,
-      elevation: 3,
-      padding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      onSelected: widget.onAction,
-      icon: Icon(Icons.more_horiz, size: 18, color: colors.textTertiary),
-      itemBuilder: (menuContext) => <PopupMenuEntry<_ConvAction>>[
-        PopupMenuItem<_ConvAction>(
+  Offset _anchorOf(BuildContext anchorContext) {
+    final renderObject = anchorContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return Offset.zero;
+    }
+    return renderObject.localToGlobal(
+      renderObject.size.bottomRight(Offset.zero),
+    );
+  }
+
+  Future<void> _openMenu(BuildContext anchorContext) async {
+    final pinned = widget.conversation.pinned;
+    final action = await showSoftMenu<_ConvAction>(
+      context: context,
+      anchor: _anchorOf(anchorContext),
+      items: <SoftMenuItem<_ConvAction>>[
+        const SoftMenuItem<_ConvAction>(
           value: _ConvAction.rename,
-          height: 48,
-          child: Row(
-            children: <Widget>[
-              Icon(
-                Icons.edit_outlined,
-                size: 20,
-                color: colors.textSecondary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '重命名',
-                style: TextStyle(fontSize: 16, color: colors.textPrimary),
-              ),
-            ],
-          ),
+          icon: Icons.edit_outlined,
+          label: '重命名',
         ),
-        PopupMenuItem<_ConvAction>(
+        SoftMenuItem<_ConvAction>(
           value: _ConvAction.pin,
-          height: 48,
-          child: Row(
-            children: <Widget>[
-              Icon(
-                widget.conversation.pinned
-                    ? Icons.push_pin
-                    : Icons.push_pin_outlined,
-                size: 20,
-                color: colors.textSecondary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                widget.conversation.pinned ? '取消置顶' : '置顶',
-                style: TextStyle(fontSize: 16, color: colors.textPrimary),
-              ),
-            ],
-          ),
+          icon: pinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          label: pinned ? '取消置顶' : '置顶',
         ),
-        PopupMenuItem<_ConvAction>(
+        const SoftMenuItem<_ConvAction>(
           value: _ConvAction.export,
-          height: 48,
-          child: Row(
-            children: <Widget>[
-              Icon(
-                Icons.ios_share,
-                size: 20,
-                color: colors.textSecondary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '导出 Markdown',
-                style: TextStyle(fontSize: 16, color: colors.textPrimary),
-              ),
-            ],
-          ),
+          icon: Icons.ios_share_outlined,
+          label: '导出 Markdown',
         ),
-        PopupMenuItem<_ConvAction>(
+        const SoftMenuItem<_ConvAction>(
           value: _ConvAction.select,
-          height: 48,
-          child: Row(
-            children: <Widget>[
-              Icon(
-                Icons.checklist,
-                size: 20,
-                color: colors.textSecondary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '多选',
-                style: TextStyle(fontSize: 16, color: colors.textPrimary),
-              ),
-            ],
-          ),
+          icon: Icons.checklist_rounded,
+          label: '多选',
         ),
-        PopupMenuItem<_ConvAction>(
+        const SoftMenuItem<_ConvAction>(
           value: _ConvAction.delete,
-          height: 48,
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.delete_outline, size: 20, color: colors.danger),
-              const SizedBox(width: 12),
-              Text(
-                '删除',
-                style: TextStyle(fontSize: 16, color: colors.danger),
-              ),
-            ],
-          ),
+          icon: Icons.delete_outline_rounded,
+          label: '删除',
+          destructive: true,
         ),
       ],
     );
+    if (action == null) return;
+    widget.onAction(action);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isDark = context.isDark;
     final background = widget.selected || widget.active
-        ? (isDark ? _activeDark : _activeLight)
-        : (_hovered
-            ? (isDark ? _hoverDark : _hoverLight)
-            : Colors.transparent);
+        ? colors.brandSoft
+        : (_hovered ? colors.bgHover : Colors.transparent);
     final textColor = widget.active && !widget.selecting
-        ? (isDark ? Colors.white : colors.brandText)
+        ? colors.brandText
         : colors.textPrimary;
 
     return MouseRegion(
@@ -1109,15 +1064,21 @@ class _ConversationRowState extends State<_ConversationRow> {
       onExit: (_) => setState(() => _hovered = false),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
-        child: SizedBox(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
           height: 40,
-          child: Material(
+          decoration: BoxDecoration(
             color: background,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Material(
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: widget.onTap,
-              onLongPress: () => _menuKey.currentState?.showButtonMenu(),
+              onLongPress: () => _openMenu(context),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -1126,14 +1087,20 @@ class _ConversationRowState extends State<_ConversationRow> {
                 child: Row(
                   children: <Widget>[
                     if (widget.selecting) ...<Widget>[
-                      Icon(
-                        widget.selected
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
-                        size: 18,
-                        color: widget.selected
-                            ? colors.brand
-                            : colors.textTertiary,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 160),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeOutCubic,
+                        child: Icon(
+                          widget.selected
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          key: ValueKey<bool>(widget.selected),
+                          size: 18,
+                          color: widget.selected
+                              ? colors.brand
+                              : colors.textTertiary,
+                        ),
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -1151,9 +1118,23 @@ class _ConversationRowState extends State<_ConversationRow> {
                     ),
                     if (!widget.selecting)
                       SizedBox(
-                        width: 28,
+                        width: 24,
                         height: 22,
-                        child: _buildMenu(context),
+                        child: Builder(
+                          builder: (buttonContext) {
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => _openMenu(buttonContext),
+                              child: Center(
+                                child: Icon(
+                                  Icons.more_horiz_rounded,
+                                  size: 18,
+                                  color: colors.textTertiary,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                   ],
                 ),

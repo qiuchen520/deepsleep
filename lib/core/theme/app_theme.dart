@@ -53,7 +53,7 @@ class AppColors extends ThemeExtension<AppColors> {
 
   static const AppColors light = AppColors(
     bgBase: Color(0xFFFFFFFF),
-    bgSidebar: Color(0xFFF9FAFB),
+    bgSidebar: Color(0xFFF8F9FB),
     bgElevated: Color(0xFFFFFFFF),
     bgHover: Color(0x0F263148), // rgba(38,49,72,.06)
     bgActive: Color(0x1A263148), // rgba(38,49,72,.10)
@@ -61,8 +61,8 @@ class AppColors extends ThemeExtension<AppColors> {
     userBubble: Color(0xFFEDF3FE),
     codeBg: Color(0xFFF9FAFB),
     codeBanner: Color(0xFFF9FAFB),
-    border: Color(0x0A000000), // l1 rgba(0,0,0,.04)
-    borderStrong: Color(0x1A000000), // l2 rgba(0,0,0,.10)
+    border: Color(0x0D000000), // l1 rgba(0,0,0,.05)
+    borderStrong: Color(0x17000000), // l2 rgba(0,0,0,.09)
     textPrimary: Color(0xFF0F1115),
     textSecondary: Color(0xFF61666B),
     textTertiary: Color(0xFF81858C),
@@ -77,7 +77,7 @@ class AppColors extends ThemeExtension<AppColors> {
 
   static const AppColors dark = AppColors(
     bgBase: Color(0xFF151517),
-    bgSidebar: Color(0xFF1B1B1C),
+    bgSidebar: Color(0xFF17181A),
     bgElevated: Color(0xFF2C2C2E),
     bgHover: Color(0x14FFFFFF), // .08
     bgActive: Color(0x24FFFFFF), // .14

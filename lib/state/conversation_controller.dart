@@ -500,7 +500,14 @@ class ConversationController extends ChangeNotifier {
         break;
       case StreamEventType.searchResults:
         _streamHits = event.searchHits;
-        if (_streamSteps.isNotEmpty &&
+        final pendingSearch = _streamSteps.lastIndexWhere(
+          (step) =>
+              step.kind == ThinkingStepKind.search && step.hits.isEmpty,
+        );
+        if (pendingSearch >= 0) {
+          _streamSteps[pendingSearch] =
+              _streamSteps[pendingSearch].copyWith(hits: event.searchHits);
+        } else if (_streamSteps.isNotEmpty &&
             _streamSteps.last.kind == ThinkingStepKind.search) {
           _streamSteps[_streamSteps.length - 1] =
               _streamSteps.last.copyWith(hits: event.searchHits);
@@ -534,12 +541,24 @@ class ConversationController extends ChangeNotifier {
             _streamVisitedPages.add(page);
           }
         }
-        _streamSteps.add(
-          ThinkingStep(
-            kind: ThinkingStepKind.browse,
-            hits: event.visitedPages,
-          ),
+        final lastBrowse = _streamSteps.lastIndexWhere(
+          (step) => step.kind == ThinkingStepKind.browse,
         );
+        if (lastBrowse >= 0) {
+          final merged = <SearchHit>[
+            ..._streamSteps[lastBrowse].hits,
+            ...event.visitedPages,
+          ];
+          _streamSteps[lastBrowse] =
+              _streamSteps[lastBrowse].copyWith(hits: merged);
+        } else {
+          _streamSteps.add(
+            ThinkingStep(
+              kind: ThinkingStepKind.browse,
+              hits: event.visitedPages,
+            ),
+          );
+        }
         _updateStreamingMessage();
         _notify();
         break;
