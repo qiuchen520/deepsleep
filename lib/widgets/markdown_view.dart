@@ -242,6 +242,20 @@ class _PreBlockBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// flutter_markdown 在「文档以围栏代码块结尾」时不会清空内部 inline 栈，
+/// debug 构建会触发断言；追加一个零宽段落规避（不影响视觉）。
+String _normalizeMarkdown(String data) {
+  final lines = data.split('\n');
+  var end = lines.length - 1;
+  while (end >= 0 && lines[end].trim().isEmpty) {
+    end--;
+  }
+  if (end >= 0 && lines[end].trim().startsWith('```')) {
+    return '$data\n\n\u200B';
+  }
+  return data;
+}
+
 /// 渲染一段 Markdown 文本。
 class MarkdownView extends StatelessWidget {
   const MarkdownView({
@@ -273,7 +287,7 @@ class MarkdownView extends StatelessWidget {
     return Padding(
       padding: padding,
       child: MarkdownBody(
-        data: data,
+        data: _normalizeMarkdown(data),
         selectable: selectable,
         softLineBreak: true,
         fitContent: true,

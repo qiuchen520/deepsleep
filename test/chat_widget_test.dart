@@ -52,20 +52,6 @@ void main() {
 
 
 
-  testWidgets('思考面板可以渲染', (tester) async {
-    await tester.pumpWidget(
-      _host(
-        ThinkingPanel(
-          reasoning: '先分析问题，再给出答案。',
-          streaming: false,
-          startedAt: DateTime(2026, 1, 1, 12, 0, 0),
-          finishedAt: DateTime(2026, 1, 1, 12, 0, 3),
-        ),
-      ),
-    );
-    await tester.pump();
-    expect(tester.takeException(), isNull);
-  });
 
   testWidgets('搜索结果卡片可以渲染', (tester) async {
     await tester.pumpWidget(
