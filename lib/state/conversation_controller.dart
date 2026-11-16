@@ -79,6 +79,8 @@ class ConversationController extends ChangeNotifier {
   String _streamContent = '';
   String _streamReasoning = '';
   List<SearchHit> _streamHits = <SearchHit>[];
+  List<String> _streamQueries = <String>[];
+  List<SearchHit> _streamVisitedPages = <SearchHit>[];
   List<String> _streamMemoryIds = <String>[];
   int? _streamPromptTokens;
   int? _streamCompletionTokens;
@@ -393,6 +395,8 @@ class ConversationController extends ChangeNotifier {
     _streamContent = '';
     _streamReasoning = '';
     _streamHits = <SearchHit>[];
+    _streamQueries = <String>[];
+    _streamVisitedPages = <SearchHit>[];
     _streamMemoryIds = <String>[];
     _streamPromptTokens = null;
     _streamCompletionTokens = null;
@@ -485,6 +489,22 @@ class ConversationController extends ChangeNotifier {
         _updateStreamingMessage();
         _notify();
         break;
+      case StreamEventType.searchQuery:
+        for (final q in event.queries) {
+          if (!_streamQueries.contains(q)) _streamQueries.add(q);
+        }
+        _updateStreamingMessage();
+        _notify();
+        break;
+      case StreamEventType.pagesVisited:
+        for (final page in event.visitedPages) {
+          if (!_streamVisitedPages.any((e) => e.url == page.url)) {
+            _streamVisitedPages.add(page);
+          }
+        }
+        _updateStreamingMessage();
+        _notify();
+        break;
       case StreamEventType.usage:
         _streamPromptTokens = event.promptTokens ?? _streamPromptTokens;
         _streamCompletionTokens = event.completionTokens;
@@ -508,6 +528,8 @@ class ConversationController extends ChangeNotifier {
       reasoning: _streamReasoning,
       status: MessageStatus.streaming,
       searchHits: _streamHits,
+      searchQueries: _streamQueries,
+      visitedPages: _streamVisitedPages,
       citedMemoryIds: _streamMemoryIds,
     );
     _streamingMessage = updated;
@@ -554,6 +576,8 @@ class ConversationController extends ChangeNotifier {
       tokens: _streamCompletionTokens ??
           estimateMessageTokens(content, reasoning: _streamReasoning),
       searchHits: _streamHits,
+      searchQueries: _streamQueries,
+      visitedPages: _streamVisitedPages,
       citedMemoryIds: _streamMemoryIds,
       error: failed && !stopped ? '没有收到有效回复，请重试' : null,
     );

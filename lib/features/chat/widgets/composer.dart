@@ -237,7 +237,7 @@ class Composer extends StatelessWidget {
                                 ),
                                 _Toggle(
                                   icon: Icons.language_rounded,
-                                  label: '联网搜索',
+                                  label: '智能搜索',
                                   active: controller.searchOn,
                                   onTap: () => _toggleSearch(context),
                                 ),

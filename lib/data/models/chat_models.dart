@@ -190,6 +190,8 @@ class ChatMessage {
     this.versions = const <MessageVersion>[],
     this.activeVersion = -1,
     this.searchHits = const <SearchHit>[],
+    this.searchQueries = const <String>[],
+    this.visitedPages = const <SearchHit>[],
     this.citedMemoryIds = const <String>[],
     this.compressed = false,
     this.error,
@@ -213,6 +215,12 @@ class ChatMessage {
   final int activeVersion;
 
   final List<SearchHit> searchHits;
+
+  /// 本轮搜索用过的查询词（展示在思考面板里）。
+  final List<String> searchQueries;
+
+  /// 本轮阅读过的网页（展示在思考面板里）。
+  final List<SearchHit> visitedPages;
 
   /// 本轮注入过、并被模型实际参考的记忆 ID（用于「引用记忆」展示）。
   final List<String> citedMemoryIds;
@@ -246,6 +254,8 @@ class ChatMessage {
     List<MessageVersion>? versions,
     int? activeVersion,
     List<SearchHit>? searchHits,
+    List<String>? searchQueries,
+    List<SearchHit>? visitedPages,
     List<String>? citedMemoryIds,
     bool? compressed,
     String? error,
@@ -265,6 +275,8 @@ class ChatMessage {
       versions: versions ?? this.versions,
       activeVersion: activeVersion ?? this.activeVersion,
       searchHits: searchHits ?? this.searchHits,
+      searchQueries: searchQueries ?? this.searchQueries,
+      visitedPages: visitedPages ?? this.visitedPages,
       citedMemoryIds: citedMemoryIds ?? this.citedMemoryIds,
       compressed: compressed ?? this.compressed,
       error: clearError ? null : (error ?? this.error),
@@ -285,6 +297,8 @@ class ChatMessage {
         'versions': versions.map((e) => e.toJson()).toList(),
         'activeVersion': activeVersion,
         'searchHits': searchHits.map((e) => e.toJson()).toList(),
+        'searchQueries': searchQueries,
+        'visitedPages': visitedPages.map((e) => e.toJson()).toList(),
         'citedMemoryIds': citedMemoryIds,
         'compressed': compressed,
         'error': error,
@@ -312,6 +326,13 @@ class ChatMessage {
             .toList(),
         activeVersion: (json['activeVersion'] as num?)?.toInt() ?? -1,
         searchHits: (json['searchHits'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(SearchHit.fromJson)
+            .toList(),
+        searchQueries: (json['searchQueries'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList(),
+        visitedPages: (json['visitedPages'] as List<dynamic>? ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(SearchHit.fromJson)
             .toList(),

@@ -58,6 +58,8 @@ enum StreamEventType {
   reasoning,
   content,
   searchResults,
+  searchQuery,
+  pagesVisited,
   usage,
   title,
   error,
@@ -69,6 +71,8 @@ class ChatStreamEvent {
     required this.type,
     this.text = '',
     this.searchHits = const <SearchHit>[],
+    this.queries = const <String>[],
+    this.visitedPages = const <SearchHit>[],
     this.promptTokens,
     this.completionTokens,
     this.title,
@@ -79,6 +83,13 @@ class ChatStreamEvent {
   final StreamEventType type;
   final String text;
   final List<SearchHit> searchHits;
+
+  /// 搜索查询词（[StreamEventType.searchQuery]）。
+  final List<String> queries;
+
+  /// 已浏览的网页（[StreamEventType.pagesVisited]）。
+  final List<SearchHit> visitedPages;
+
   final int? promptTokens;
   final int? completionTokens;
   final String? title;

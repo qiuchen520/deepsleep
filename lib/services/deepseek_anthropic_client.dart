@@ -163,6 +163,28 @@ class DeepSeekAnthropicClient implements ChatApi {
                       searchHits: List<SearchHit>.unmodifiable(searchHits),
                     );
                   }
+                } else if (type == 'server_tool_use') {
+                  final input = block['input'];
+                  if (input is Map && input['action'] == 'search') {
+                    final queries = (input['queries'] as List<dynamic>? ?? const [])
+                        .whereType<String>()
+                        .where((e) => e.trim().isNotEmpty)
+                        .toList();
+                    if (queries.isNotEmpty) {
+                      yield ChatStreamEvent(
+                        type: StreamEventType.searchQuery,
+                        queries: queries,
+                      );
+                    }
+                  }
+                } else if (type == 'web_fetch_tool_result') {
+                  final pages = _collectVisitedPages(block);
+                  if (pages.isNotEmpty) {
+                    yield ChatStreamEvent(
+                      type: StreamEventType.pagesVisited,
+                      visitedPages: pages,
+                    );
+                  }
                 }
                 break;
 
@@ -302,6 +324,31 @@ class DeepSeekAnthropicClient implements ChatApi {
       'tools': tools,
       'stream': true,
     };
+  }
+
+  List<SearchHit> _collectVisitedPages(Map<dynamic, dynamic> block) {
+    final content = block['content'];
+    final pages = <SearchHit>[];
+    if (content is List) {
+      for (final item in content) {
+        if (item is Map && item['type'] == 'web_fetch_result') {
+          final url = '${item['url'] ?? ''}'.trim();
+          final inner = item['content'];
+          final title = inner is Map ? '${inner['title'] ?? url}' : url;
+          if (url.isNotEmpty) {
+            pages.add(SearchHit(title: title.trim(), url: url, snippet: ''));
+          }
+        }
+      }
+    } else if (content is Map && content['type'] == 'web_fetch_result') {
+      final url = '${content['url'] ?? ''}'.trim();
+      final inner = content['content'];
+      final title = inner is Map ? '${inner['title'] ?? url}' : url;
+      if (url.isNotEmpty) {
+        pages.add(SearchHit(title: title.trim(), url: url, snippet: ''));
+      }
+    }
+    return pages;
   }
 
   List<SearchHit> _collectSearchResults(Map<dynamic, dynamic> block) {

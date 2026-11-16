@@ -76,7 +76,9 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            if (message.searchHits.isNotEmpty || searching)
+            // 搜索过程放进思考面板；没有思考过程时才在正文上方展示搜索胶囊。
+            if (!hasReasoning &&
+                (message.searchHits.isNotEmpty || searching))
               SearchHitsCard(hits: message.searchHits, searching: searching),
             if (hasReasoning)
               ThinkingPanel(
@@ -84,6 +86,9 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
                 streaming: streaming && message.isStreaming,
                 startedAt: message.createdAt,
                 finishedAt: message.finishedAt,
+                queries: message.searchQueries,
+                hits: message.searchHits,
+                visitedPages: message.visitedPages,
               ),
             if (hasContent) MarkdownView(data: content),
             if (streaming && hasContent)
@@ -101,6 +106,20 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
                 message:
                     message.error ?? controller.lastError ?? '生成失败，请重试',
                 onRetry: controller.regenerateLast,
+              ),
+            // 回答末尾的来源汇总胶囊（对齐官方 App）。
+            if (!streaming &&
+                hasReasoning &&
+                message.searchHits.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 2),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SearchHitsCard(
+                    hits: message.searchHits,
+                    compact: true,
+                  ),
+                ),
               ),
             if (!streaming && message.citedMemoryIds.isNotEmpty)
               Padding(
