@@ -945,38 +945,38 @@ class _ConversationRowState extends State<_ConversationRow> {
                         width: 26,
                         height: 22,
                         child: PopupMenuButton<_ConvAction>(
-                        key: _menuKey,
-                        tooltip: '更多操作',
-                        padding: EdgeInsets.zero,
-                        iconSize: 16,
-                        icon: Icon(
-                          Icons.more_horiz,
-                          color: widget.active
-                              ? textColor
-                              : colors.textTertiary,
-                        ),
-                        onSelected: widget.onAction,
-                        itemBuilder: (menuContext) =>
-                            <PopupMenuEntry<_ConvAction>>[
-                          const PopupMenuItem<_ConvAction>(
-                            value: _ConvAction.rename,
-                            child: Text('重命名'),
+                          key: _menuKey,
+                          tooltip: '更多操作',
+                          padding: EdgeInsets.zero,
+                          iconSize: 16,
+                          icon: Icon(
+                            Icons.more_horiz,
+                            color: widget.active
+                                ? textColor
+                                : colors.textTertiary,
                           ),
-                          PopupMenuItem<_ConvAction>(
-                            value: _ConvAction.pin,
-                            child: Text(
-                              widget.conversation.pinned ? '取消置顶' : '置顶',
+                          onSelected: widget.onAction,
+                          itemBuilder: (menuContext) =>
+                              <PopupMenuEntry<_ConvAction>>[
+                            const PopupMenuItem<_ConvAction>(
+                              value: _ConvAction.rename,
+                              child: Text('重命名'),
                             ),
-                          ),
-                          const PopupMenuItem<_ConvAction>(
-                            value: _ConvAction.export,
-                            child: Text('导出 Markdown'),
-                          ),
-                          const PopupMenuItem<_ConvAction>(
-                            value: _ConvAction.delete,
-                            child: Text('删除'),
-                          ),
-                        ],
+                            PopupMenuItem<_ConvAction>(
+                              value: _ConvAction.pin,
+                              child: Text(
+                                widget.conversation.pinned ? '取消置顶' : '置顶',
+                              ),
+                            ),
+                            const PopupMenuItem<_ConvAction>(
+                              value: _ConvAction.export,
+                              child: Text('导出 Markdown'),
+                            ),
+                            const PopupMenuItem<_ConvAction>(
+                              value: _ConvAction.delete,
+                              child: Text('删除'),
+                            ),
+                          ],
                         ),
                       ),
                     ),

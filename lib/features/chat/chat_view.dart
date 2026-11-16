@@ -183,12 +183,6 @@ class _ChatViewState extends State<ChatView> {
     }
   }
 
-  void _fillInput(String text) {
-    _inputController.text = text;
-    _inputController.selection = TextSelection.collapsed(offset: text.length);
-    _inputFocus.requestFocus();
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -211,7 +205,7 @@ class _ChatViewState extends State<ChatView> {
             child: controller.loading
                 ? const Center(child: CircularProgressIndicator())
                 : messages.isEmpty
-                    ? WelcomeView(onPickSuggestion: _fillInput)
+                    ? const WelcomeView()
                     : Stack(
                         children: <Widget>[
                           MessageList(
@@ -268,7 +262,7 @@ class _ChatHeader extends StatelessWidget {
     final title = controller.activeConversation?.title ?? AppInfo.appName;
     final sidebarAction = onOpenSidebar;
     return SizedBox(
-      height: 52,
+      height: 60,
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
@@ -280,8 +274,9 @@ class _ChatHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 22 / 14,
                 color: colors.textPrimary,
               ),
             ),

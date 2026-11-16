@@ -1,6 +1,8 @@
-/// 助手消息：搜索 / 思考折叠行 + Markdown 正文 + 操作行 + 记忆引用。
+/// 助手消息：搜索来源 / 思考折叠 + Markdown 正文 + 操作栏。
 ///
-/// 无气泡无背景；最后一条助手消息的操作行常显，其他消息点击 / 长按后出现。
+/// 对齐 docs/UI_SPEC.md：无气泡无头像；正文 16/28（由 MarkdownView 负责）；
+/// 正文与操作栏之间 6px，操作栏 padding-top 12 / padding-bottom 10，
+/// 图标按钮 28px、间距 10，整体左移 6px 与正文对齐。
 library;
 
 import 'package:flutter/material.dart';
@@ -68,74 +70,87 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
       behavior: HitTestBehavior.translucent,
       onTap: _toggleActions,
       onLongPress: _toggleActions,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (message.searchHits.isNotEmpty || searching)
-            SearchHitsCard(hits: message.searchHits, searching: searching),
-          if (hasReasoning)
-            ThinkingPanel(
-              reasoning: reasoning,
-              streaming: streaming && message.isStreaming,
-              startedAt: message.createdAt,
-              finishedAt: message.finishedAt,
-            ),
-          if (hasContent) MarkdownView(data: content),
-          if (streaming && hasContent)
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: StreamingCursor(),
-            ),
-          if (streaming && !hasContent && !hasReasoning)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: TypingDots(size: 6),
-            ),
-          if (failed)
-            ErrorCard(
-              message: message.error ?? controller.lastError ?? '生成失败，请重试',
-              onRetry: controller.regenerateLast,
-            ),
-          if (!streaming && message.citedMemoryIds.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: MemoryCitationChip(
-                citedMemoryIds: message.citedMemoryIds,
-                controller: controller,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: showActions ? 0.0 : 6.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (message.searchHits.isNotEmpty || searching)
+              SearchHitsCard(hits: message.searchHits, searching: searching),
+            if (hasReasoning)
+              ThinkingPanel(
+                reasoning: reasoning,
+                streaming: streaming && message.isStreaming,
+                startedAt: message.createdAt,
+                finishedAt: message.finishedAt,
               ),
-            ),
-          if (showActions)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 2,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: <Widget>[
-                  _IconAction(
-                    icon: Icons.copy_rounded,
-                    tooltip: '复制',
-                    onTap: hasContent ? () => _copy(context) : null,
+            if (hasContent) MarkdownView(data: content),
+            if (streaming && hasContent)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: StreamingCursor(),
+              ),
+            if (streaming && !hasContent && !hasReasoning)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: TypingDots(size: 6),
+              ),
+            if (failed)
+              ErrorCard(
+                message:
+                    message.error ?? controller.lastError ?? '生成失败，请重试',
+                onRetry: controller.regenerateLast,
+              ),
+            if (!streaming && message.citedMemoryIds.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: MemoryCitationChip(
+                  citedMemoryIds: message.citedMemoryIds,
+                  controller: controller,
+                ),
+              ),
+            if (showActions)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Transform.translate(
+                  offset: const Offset(-6, 0),
+                  child: Container(
+                    padding: const EdgeInsets.only(top: 12, bottom: 10),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        _IconAction(
+                          icon: Icons.copy_rounded,
+                          tooltip: '复制',
+                          onTap: hasContent ? () => _copy(context) : null,
+                        ),
+                        if (isLast && !failed)
+                          _IconAction(
+                            icon: Icons.refresh_rounded,
+                            tooltip: '重新生成',
+                            onTap: () => controller.regenerateLast(),
+                          ),
+                        if (canContinue)
+                          _IconAction(
+                            icon: Icons.play_arrow_rounded,
+                            tooltip: '继续生成',
+                            onTap: () => controller.continueGeneration(),
+                          ),
+                        if (message.hasVersions)
+                          _VersionSwitcher(
+                            message: message,
+                            controller: controller,
+                          ),
+                      ],
+                    ),
                   ),
-                  if (isLast && !failed)
-                    _IconAction(
-                      icon: Icons.refresh_rounded,
-                      tooltip: '重新生成',
-                      onTap: () => controller.regenerateLast(),
-                    ),
-                  if (canContinue)
-                    _IconAction(
-                      icon: Icons.play_arrow_rounded,
-                      tooltip: '继续生成',
-                      onTap: () => controller.continueGeneration(),
-                    ),
-                  if (message.hasVersions)
-                    _VersionSwitcher(message: message, controller: controller),
-                ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -174,10 +189,14 @@ class _VersionSwitcher extends StatelessWidget {
               : null,
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Text(
             '${current + 1}/${message.versionCount}',
-            style: TextStyle(fontSize: 12, color: colors.textTertiary),
+            style: TextStyle(
+              fontSize: 14,
+              height: 24 / 14,
+              color: colors.textTertiary,
+            ),
           ),
         ),
         _IconAction(
@@ -215,8 +234,9 @@ class _IconAction extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: Padding(
-          padding: const EdgeInsets.all(3),
+        child: SizedBox(
+          width: 28,
+          height: 28,
           child: Icon(icon, size: 16, color: color),
         ),
       ),

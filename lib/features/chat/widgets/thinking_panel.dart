@@ -49,32 +49,35 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-            child: Container(
-              height: 34,
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    _title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 24 / 14,
-                      color: colors.textSecondary,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              child: Container(
+                height: 34,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      _title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 24 / 14,
+                        color: colors.textSecondary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(
-                    _expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    size: 16,
-                    color: colors.textTertiary,
-                  ),
-                ],
+                    const SizedBox(width: 2),
+                    Icon(
+                      _expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 16,
+                      color: colors.textTertiary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

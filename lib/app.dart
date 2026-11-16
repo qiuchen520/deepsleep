@@ -99,11 +99,6 @@ class _RootShellState extends State<RootShell> {
                   onOpenMemory: _openMemory,
                 ),
               ),
-              VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: context.colors.border,
-              ),
               Expanded(child: chatView),
             ],
           ),

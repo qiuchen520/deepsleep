@@ -26,54 +26,57 @@ class UserMessageTile extends StatelessWidget {
     final content = message.displayContent;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxBubbleWidth = constraints.maxWidth.isFinite
-            ? constraints.maxWidth * 0.78
-            : 520.0;
-        return Align(
-          alignment: Alignment.centerRight,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                if (attachments.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: <Widget>[
-                        for (final attachment in attachments)
-                          AttachmentChip(attachment: attachment),
-                      ],
+        final narrow = MediaQuery.sizeOf(context).width < 440;
+        final rawMax = constraints.maxWidth - (narrow ? 68 : 88);
+        final bubbleMax = rawMax < 80 ? 80.0 : rawMax;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: bubbleMax),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  if (attachments.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: <Widget>[
+                          for (final attachment in attachments)
+                            AttachmentChip(attachment: attachment),
+                        ],
+                      ),
                     ),
-                  ),
-                if (content.trim().isNotEmpty)
-                  GestureDetector(
-                    onTap: () => _showMenu(context),
-                    onLongPress: () => _showMenu(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.userBubble,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        content,
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          height: 1.7,
-                          color: colors.textPrimary,
+                  if (content.trim().isNotEmpty)
+                    GestureDetector(
+                      onTap: () => _showMenu(context),
+                      onLongPress: () => _showMenu(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.userBubble,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: Text(
+                          content,
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 24 / 16,
+                            color: colors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );

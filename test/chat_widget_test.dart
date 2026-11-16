@@ -25,7 +25,7 @@ void main() {
   testWidgets('Markdown 混合内容可以渲染（标题/表格/代码块）', (tester) async {
     const sample = '# 标题\n\n'
         '中文段落，包含 **粗体**、*斜体* 和 `inline code`。\n\n'
-        '```dart\nvoid main() {\n  print("hi");\n}\n```\n\n'
+        '```dart\nvoid main() {\n  debugPrint("hi");\n}\n```\n\n'
         '| 列1 | 列2 |\n| --- | --- |\n| a | b |\n\n'
         '- 列表项一\n- 列表项二\n\n> 引用内容\n\n[链接](https://example.com)\n';
     await tester.pumpWidget(_host(const MarkdownView(data: sample)));

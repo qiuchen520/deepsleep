@@ -1,5 +1,9 @@
-/// 输入区：单层圆角容器（无边框无阴影）、多行输入、附件 / 深度思考 / 联网搜索、
-/// 发送 / 停止与免责声明。
+/// 输入区：底部 sticky 输入卡片 + 功能行 + 免责声明。
+///
+/// 对齐 docs/UI_SPEC.md：外层宽 776、max-width calc(100%-32)；卡片圆角 24、
+/// 1px 边框、欢迎页阴影（深色无阴影）；输入 16/24、最小高 60、内边距
+/// 12 12 0 16；发送按钮 34×34；功能行 padding 12、gap 8；开关高 34、圆角 18、
+/// 字号 13/20；免责声明 11/16 居中。
 library;
 
 import 'package:flutter/material.dart';
@@ -73,127 +77,176 @@ class Composer extends StatelessWidget {
     controller.setSearchEnabled(!controller.searchOn);
   }
 
+  List<BoxShadow> _cardShadow(BuildContext context) {
+    if (context.isDark) return const <BoxShadow>[];
+    final colors = context.colors;
+    if (controller.messages.isEmpty) {
+      // 欢迎页阴影（Spec §5）。
+      return <BoxShadow>[
+        BoxShadow(
+          color: colors.shadow.withValues(alpha: 0.02),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+        BoxShadow(
+          color: colors.brand.withValues(alpha: 0.01),
+          blurRadius: 2,
+          offset: const Offset(0, 2),
+        ),
+        BoxShadow(
+          color: colors.brand.withValues(alpha: 0.03),
+          blurRadius: 60,
+          offset: const Offset(0, 30),
+        ),
+      ];
+    }
+    // 会话中阴影。
+    return <BoxShadow>[
+      BoxShadow(
+        color: colors.shadow.withValues(alpha: 0.02),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+      BoxShadow(
+        color: colors.shadow.withValues(alpha: 0.04),
+        blurRadius: 4,
+        offset: const Offset(0, 2),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final appSettings = settings.settings;
     final pending = controller.pendingAttachments;
+    final borderColor = context.isDark ? colors.border : colors.borderStrong;
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 780),
+        constraints: const BoxConstraints(maxWidth: 776),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              if (pending.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: <Widget>[
-                      for (final attachment in pending)
-                        AttachmentChip(
-                          attachment: attachment,
-                          onRemove: () => controller.removeAttachment(
-                            attachment.id,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: colors.bgInput,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: borderColor),
+                  boxShadow: _cardShadow(context),
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        IconButton(
-                          onPressed:
-                              controller.streaming ? null : controller.pickAttachments,
-                          icon: const Icon(Icons.attach_file_rounded),
-                          iconSize: 20,
-                          color: colors.textTertiary,
-                          tooltip: '添加附件',
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 36,
-                            height: 36,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: TextField(
-                              controller: textController,
-                              focusNode: focusNode,
-                              minLines: 1,
-                              maxLines: 6,
-                              keyboardType: TextInputType.multiline,
-                              textInputAction: appSettings.sendWithEnter
-                                  ? TextInputAction.send
-                                  : TextInputAction.newline,
-                              onSubmitted: appSettings.sendWithEnter
-                                  ? (value) => _send()
-                                  : null,
-                              style: TextStyle(
-                                fontSize: 15,
-                                height: 1.5,
-                                color: colors.textPrimary,
-                              ),
-                              cursorColor: colors.brand,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                filled: false,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                hintText: '给 DeepSeek 发送消息…',
-                                hintStyle: TextStyle(
-                                  fontSize: 15,
-                                  color: colors.textTertiary,
+                    if (pending.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: <Widget>[
+                            for (final attachment in pending)
+                              AttachmentChip(
+                                attachment: attachment,
+                                onRemove: () => controller.removeAttachment(
+                                  attachment.id,
                                 ),
                               ),
+                          ],
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 12, 0),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 60),
+                        child: TextField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          minLines: 1,
+                          maxLines: 6,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: appSettings.sendWithEnter
+                              ? TextInputAction.send
+                              : TextInputAction.newline,
+                          onSubmitted: appSettings.sendWithEnter
+                              ? (value) => _send()
+                              : null,
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 24 / 16,
+                            color: colors.textPrimary,
+                          ),
+                          cursorColor: colors.brand,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: '给 DeepSeek 发送消息…',
+                            hintStyle: TextStyle(
+                              fontSize: 16,
+                              height: 24 / 16,
+                              // 近似 Spec 的 caption 色（浅 #ADB2B8 / 深 #81858C）。
+                              color: colors.textTertiary.withValues(
+                                alpha: 0.65,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4, right: 2),
-                          child: _streamOrSendButton(),
-                        ),
-                      ],
+                      ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(left: 4, top: 2, bottom: 2),
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
                       child: Row(
                         children: <Widget>[
-                          _TextToggle(
-                            icon: Icons.lightbulb_outline_rounded,
-                            label: '深度思考',
-                            active: controller.deepThinking,
-                            onTap: () => controller.setDeepThinking(
-                              !controller.deepThinking,
+                          Expanded(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: <Widget>[
+                                IconButton(
+                                  onPressed: controller.streaming
+                                      ? null
+                                      : controller.pickAttachments,
+                                  icon: const Icon(Icons.attach_file_rounded),
+                                  iconSize: 20,
+                                  color: colors.textTertiary,
+                                  tooltip: '添加附件',
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 34,
+                                    height: 34,
+                                  ),
+                                ),
+                                _Toggle(
+                                  icon: Icons.lightbulb_outline_rounded,
+                                  label: '深度思考',
+                                  active: controller.deepThinking,
+                                  onTap: () => controller.setDeepThinking(
+                                    !controller.deepThinking,
+                                  ),
+                                ),
+                                _Toggle(
+                                  icon: Icons.language_rounded,
+                                  label: '联网搜索',
+                                  active: controller.searchOn,
+                                  onTap: () => _toggleSearch(context),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          _TextToggle(
-                            icon: Icons.language_rounded,
-                            label: '联网搜索',
-                            active: controller.searchOn,
-                            onTap: () => _toggleSearch(context),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: _streamOrSendButton(),
                           ),
                         ],
                       ),
@@ -201,11 +254,17 @@ class Composer extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                AppInfo.disclaimer,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: colors.textTertiary),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  AppInfo.disclaimer,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 16 / 11,
+                    color: colors.textTertiary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -216,11 +275,9 @@ class Composer extends StatelessWidget {
 
   Widget _streamOrSendButton() {
     if (controller.streaming) {
-      return _RoundButton(
+      return _SendButton(
         icon: Icons.stop_rounded,
         tooltip: '停止生成',
-        background: null,
-        foreground: null,
         onPressed: _stop,
       );
     }
@@ -230,10 +287,11 @@ class Composer extends StatelessWidget {
         final hasInput =
             value.text.trim().isNotEmpty ||
             controller.pendingAttachments.isNotEmpty;
-        return _RoundButton(
+        final enabled = controller.canSend && hasInput;
+        return _SendButton(
           icon: Icons.arrow_upward_rounded,
           tooltip: '发送',
-          enabled: controller.canSend && hasInput,
+          enabled: enabled,
           onPressed: _send,
         );
       },
@@ -241,51 +299,47 @@ class Composer extends StatelessWidget {
   }
 }
 
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
+class _SendButton extends StatelessWidget {
+  const _SendButton({
     required this.icon,
     required this.tooltip,
     this.enabled = true,
-    this.background,
-    this.foreground,
     required this.onPressed,
   });
 
   final IconData icon;
   final String tooltip;
   final bool enabled;
-  final Color? background;
-  final Color? foreground;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final bool active = enabled;
-    final Color bg = background ??
-        (active ? colors.brand : colors.bgHover);
-    final Color fg = foreground ??
-        (active ? Colors.white : colors.textTertiary);
-    return IconButton(
-      onPressed: active ? onPressed : null,
-      icon: Icon(icon, size: 16),
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        backgroundColor: bg,
-        foregroundColor: fg,
-        disabledBackgroundColor: bg,
-        disabledForegroundColor: fg,
-        fixedSize: const Size(30, 30),
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: IconButton(
+        onPressed: enabled ? onPressed : null,
+        icon: Icon(icon, size: 18),
+        tooltip: tooltip,
         padding: EdgeInsets.zero,
-        shape: const CircleBorder(),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        style: IconButton.styleFrom(
+          backgroundColor: colors.brand,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: colors.brand.withValues(alpha: 0.4),
+          disabledForegroundColor: Colors.white,
+          fixedSize: const Size(34, 34),
+          padding: EdgeInsets.zero,
+          shape: const CircleBorder(),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }
 }
 
-class _TextToggle extends StatelessWidget {
-  const _TextToggle({
+class _Toggle extends StatelessWidget {
+  const _Toggle({
     required this.icon,
     required this.label,
     required this.active,
@@ -303,15 +357,33 @@ class _TextToggle extends StatelessWidget {
     final color = active ? colors.brand : colors.textTertiary;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: active ? colors.brandSoft : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: active
+                ? colors.brand.withValues(alpha: 0.32)
+                : Colors.transparent,
+          ),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                height: 20 / 13,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
