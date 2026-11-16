@@ -9,7 +9,66 @@ import 'state/app_services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 发布版也把构建异常显示出来，避免只看到灰块无法排查。
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return _VisibleErrorWidget(
+      message: details.exceptionAsString(),
+      stack: details.stack?.toString() ?? '',
+    );
+  };
   runApp(const BootstrapApp());
+}
+
+/// 发布版错误占位：显示异常文本，便于用户截图反馈。
+class _VisibleErrorWidget extends StatelessWidget {
+  const _VisibleErrorWidget({required this.message, required this.stack});
+
+  final String message;
+  final String stack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFFFF7F7),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Text(
+              '界面渲染出错',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFE5484D),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: Color(0xFF5E6572),
+              ),
+            ),
+            if (stack.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                stack,
+                style: const TextStyle(
+                  fontSize: 10,
+                  height: 1.4,
+                  color: Color(0xFF9AA0AA),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class BootstrapApp extends StatefulWidget {
