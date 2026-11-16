@@ -30,7 +30,6 @@ class MessageList extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final horizontal = width < 600 ? 16.0 : 44.0;
-    final contentMaxWidth = maxWidth - horizontal * 2;
     final messages = controller.messages;
     final lastAssistantId = controller.lastAssistantMessage?.id;
     return ListView.builder(
@@ -46,9 +45,12 @@ class MessageList extends StatelessWidget {
             message.id == lastAssistantId;
         final isStreaming =
             controller.streaming && message.isStreaming && isLast;
-        return Center(
+        // 助手消息靠左、用户消息靠右（普通聊天软件排版，不做居中内容列）。
+        final isUser = message.role == MessageRole.user;
+        return Align(
+          alignment: isUser ? Alignment.topRight : Alignment.topLeft,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentMaxWidth),
+            constraints: const BoxConstraints(maxWidth: 900),
             child: _MessageBody(
               message: message,
               controller: controller,
