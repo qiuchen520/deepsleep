@@ -53,6 +53,7 @@ class _AssistantMessageTileState extends State<AssistantMessageTile> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final message = widget.message;
     final controller = widget.controller;
     final streaming = widget.isStreaming;
